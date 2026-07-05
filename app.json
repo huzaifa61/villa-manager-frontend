@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Villa Manager Pro",
+    "slug": "villa-manager-pro",
+    "version": "1.0.0",
+    "scheme": "villamanager",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "com.villamanager.pro",
+      "usesCleartextTraffic": true
+    },
+    "ios": {
+      "bundleIdentifier": "com.villamanager.pro"
+    }
+  }
+}
