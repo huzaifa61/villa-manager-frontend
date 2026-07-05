@@ -13,6 +13,10 @@ import ExpensesScreen from '../screens/finance/ExpensesScreen';
 import ServiceRequestsScreen from '../screens/services/ServiceRequestsScreen';
 import ReportsScreen from '../screens/reports/ReportsScreen';
 import ControlScreen from '../screens/control/ControlScreen';
+import VendorsScreen from '../screens/control/VendorsScreen';
+import DocumentsScreen from '../screens/control/DocumentsScreen';
+import SettingsScreen from '../screens/control/SettingsScreen';
+import HelpGuideScreen from '../screens/control/HelpGuideScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -24,7 +28,7 @@ const headerOpts = {
 };
 
 const FinanceStack = () => (
-  <Stack.Navigator screenOptions={headerOpts}>
+  <Stack.Navigator id="FinanceStack" screenOptions={headerOpts}>
     <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Dashboard' }} />
     <Stack.Screen name="Apartments" component={ApartmentsScreen} />
     <Stack.Screen name="Payments" component={PaymentsScreen} />
@@ -33,27 +37,31 @@ const FinanceStack = () => (
 );
 
 const ServicesStack = () => (
-  <Stack.Navigator screenOptions={headerOpts}>
+  <Stack.Navigator id="ServicesStack" screenOptions={headerOpts}>
     <Stack.Screen name="Services" component={ServiceRequestsScreen} options={{ title: 'Service Requests' }} />
   </Stack.Navigator>
 );
 
 const ReportsStack = () => (
-  <Stack.Navigator screenOptions={headerOpts}>
+  <Stack.Navigator id="ReportsStack" screenOptions={headerOpts}>
     <Stack.Screen name="Reports" component={ReportsScreen} />
   </Stack.Navigator>
 );
 
 const ControlStack = () => (
-  <Stack.Navigator screenOptions={headerOpts}>
+  <Stack.Navigator id="ControlStack" screenOptions={headerOpts}>
     <Stack.Screen name="Control" component={ControlScreen} />
+    <Stack.Screen name="Vendors" component={VendorsScreen} />
+    <Stack.Screen name="Documents" component={DocumentsScreen} />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="HelpGuide" component={HelpGuideScreen} options={{ title: 'Help Guide' }} />
   </Stack.Navigator>
 );
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 const AppTabs = () => (
-  <Tab.Navigator screenOptions={{
+  <Tab.Navigator id="AppTabs" screenOptions={{
     headerShown: false,
     tabBarActiveTintColor: '#10B981',
     tabBarInactiveTintColor: '#6B7280',
@@ -79,7 +87,7 @@ const AppTabs = () => (
 );
 
 const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
+  <Stack.Navigator id="AuthStack" screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Login" component={LoginScreen} />
   </Stack.Navigator>
 );

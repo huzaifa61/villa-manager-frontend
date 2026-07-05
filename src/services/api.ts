@@ -79,4 +79,48 @@ export const apiService = {
     const { data } = await api.delete('/v1/villas/' + villaId + '/expenses/' + expenseId);
     return unwrap(data);
   },
+  getServiceRequests: async (villaId: number) => {
+    const { data } = await api.get('/v1/villas/' + villaId + '/service-requests');
+    return unwrap(data);
+  },
+  createServiceRequest: async (villaId: number, body: any) => {
+    const { data } = await api.post('/v1/villas/' + villaId + '/service-requests', body);
+    return unwrap(data);
+  },
+  updateServiceRequest: async (villaId: number, requestId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId + '/service-requests/' + requestId, body);
+    return unwrap(data);
+  },
+  deleteServiceRequest: async (villaId: number, requestId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId + '/service-requests/' + requestId);
+    return unwrap(data);
+  },
+  getVendors: async () => {
+    const { data } = await api.get('/v1/vendors');
+    return unwrap(data);
+  },
+  createVendor: async (body: any) => {
+    const { data } = await api.post('/v1/vendors', body);
+    return unwrap(data);
+  },
+  updateVendor: async (vendorId: number, body: any) => {
+    const { data } = await api.put('/v1/vendors/' + vendorId, body);
+    return unwrap(data);
+  },
+  deleteVendor: async (vendorId: number) => {
+    const { data } = await api.delete('/v1/vendors/' + vendorId);
+    return unwrap(data);
+  },
+  getVilla: async (villaId: number) => {
+    const { data } = await api.get('/v1/villas/' + villaId);
+    return unwrap(data);
+  },
+  updateVilla: async (villaId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId, body);
+    return unwrap(data);
+  },
+  resetVillaData: async (villaId: number) => {
+    const { data } = await api.post('/v1/villas/' + villaId + '/reset-data');
+    return unwrap(data);
+  },
 };

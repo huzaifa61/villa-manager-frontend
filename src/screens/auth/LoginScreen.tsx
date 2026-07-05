@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, SafeAreaView, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../../store/slices/authSlice';
 import { AppDispatch, RootState } from '../../store';
@@ -19,7 +19,8 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={s.container}>
       <KeyboardAvoidingView style={s.inner} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Text style={s.title}>🏠 Villa Manager Pro</Text>
+        <Image source={require('../../../assets/logo.png')} style={s.logo} resizeMode="contain" />
+        <Text style={s.title}>Villa Manager Pro</Text>
         <Text style={s.sub}>Finance & Operations Management</Text>
         <View style={s.card}>
           <TextInput style={s.input} placeholder="Email" placeholderTextColor="#6B7280" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
@@ -42,6 +43,7 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#111827' },
   inner: { flex: 1, justifyContent: 'center', padding: 24 },
+  logo: { width: 132, height: 132, alignSelf: 'center', marginBottom: 16, borderRadius: 24 },
   title: { fontSize: 30, fontWeight: 'bold', color: '#10B981', textAlign: 'center', marginBottom: 8 },
   sub: { color: '#9CA3AF', textAlign: 'center', marginBottom: 32, fontSize: 15 },
   card: { backgroundColor: '#1F2937', borderRadius: 16, padding: 20 },

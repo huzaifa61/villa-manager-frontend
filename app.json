@@ -6,7 +6,17 @@
     "scheme": "villamanager",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
+    "icon": "./assets/logo.png",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#071312"
+    },
     "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#071312"
+      },
       "package": "com.villamanager.pro",
       "usesCleartextTraffic": true
     },
