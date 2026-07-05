@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
@@ -14,9 +15,9 @@ export default function DashboardScreen({ navigation }: any) {
   const [stats, setStats] = useState({ apts: 0, occupied: 0, collected: 0, expenses: 0 });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
+  const loadStats = useCallback(async () => {
       try {
+        setLoading(true);
         const [a, p, e] = await Promise.all([
           apiService.getApartments(1).catch(() => []),
           apiService.getPayments(1).catch(() => []),
@@ -32,8 +33,11 @@ export default function DashboardScreen({ navigation }: any) {
           expenses: exps.reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
         });
       } finally { setLoading(false); }
-    })();
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    loadStats();
+  }, [loadStats]));
 
   const cards = [
     { label: 'Total Units', value: String(stats.apts), icon: 'home-outline' as IconName, color: '#3B82F6', nav: 'Apartments' },

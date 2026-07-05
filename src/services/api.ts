@@ -39,6 +39,14 @@ export const apiService = {
     const { data } = await api.post('/v1/villas/' + villaId + '/apartments', body);
     return unwrap(data);
   },
+  updateApartment: async (villaId: number, apartmentId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId + '/apartments/' + apartmentId, body);
+    return unwrap(data);
+  },
+  deleteApartment: async (villaId: number, apartmentId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId + '/apartments/' + apartmentId);
+    return unwrap(data);
+  },
   getPayments: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/payments');
     return unwrap(data);
@@ -47,12 +55,28 @@ export const apiService = {
     const { data } = await api.post('/v1/villas/' + villaId + '/payments/apartment/' + apartmentId, body);
     return unwrap(data);
   },
+  updatePayment: async (villaId: number, paymentId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId + '/payments/' + paymentId, body);
+    return unwrap(data);
+  },
+  deletePayment: async (villaId: number, paymentId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId + '/payments/' + paymentId);
+    return unwrap(data);
+  },
   getExpenses: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/expenses');
     return unwrap(data);
   },
   createExpense: async (villaId: number, body: any) => {
     const { data } = await api.post('/v1/villas/' + villaId + '/expenses', body);
+    return unwrap(data);
+  },
+  updateExpense: async (villaId: number, expenseId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId + '/expenses/' + expenseId, body);
+    return unwrap(data);
+  },
+  deleteExpense: async (villaId: number, expenseId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId + '/expenses/' + expenseId);
     return unwrap(data);
   },
 };
