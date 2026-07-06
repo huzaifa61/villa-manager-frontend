@@ -4,8 +4,12 @@ import {
   Modal, TextInput, Alert, ActivityIndicator, SafeAreaView, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
+import { useAppPreferences } from '../../context/AppPreferences';
+import { RootState } from '../../store';
+import { permissionsFor } from '../../utils/permissions';
 
 interface Apartment {
   id: number;
@@ -60,6 +64,11 @@ const emptyForm = {
 const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 const ApartmentsScreen = () => {
+  const { theme } = useAppPreferences();
+  const { user } = useSelector((s: RootState) => s.auth);
+  const permissions = permissionsFor(user);
+  const villaId = user?.villaId || VILLA_ID;
+  const styles = makeStyles(theme);
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -76,9 +85,9 @@ const ApartmentsScreen = () => {
     try {
       setLoading(true);
       const [a, e, p] = await Promise.all([
-        apiService.getApartments(VILLA_ID).catch(() => []),
-        apiService.getExpenses(VILLA_ID).catch(() => []),
-        apiService.getPayments(VILLA_ID).catch(() => []),
+        apiService.getApartments(villaId).catch(() => []),
+        apiService.getExpenses(villaId).catch(() => []),
+        apiService.getPayments(villaId).catch(() => []),
       ]);
       setApartments(Array.isArray(a) ? a : []);
       setExpenses(Array.isArray(e) ? e : []);
@@ -139,9 +148,9 @@ const ApartmentsScreen = () => {
     };
     try {
       if (editing) {
-        await apiService.updateApartment(VILLA_ID, editing.id, body);
+        await apiService.updateApartment(villaId, editing.id, body);
       } else {
-        await apiService.createApartment(VILLA_ID, body);
+        await apiService.createApartment(villaId, body);
       }
       setModalVisible(false);
       await fetchData();
@@ -161,7 +170,7 @@ const ApartmentsScreen = () => {
         style: 'destructive',
         onPress: async () => {
           try {
-            await apiService.deleteApartment(VILLA_ID, apartment.id);
+            await apiService.deleteApartment(villaId, apartment.id);
             await fetchData();
           } catch (e: any) {
             Alert.alert('Error', e?.response?.data?.message || 'Failed to delete apartment');
@@ -235,7 +244,7 @@ const ApartmentsScreen = () => {
 
   const exportApartments = async () => {
     try {
-      const csv = await apiService.exportApartmentsCsv(VILLA_ID);
+      const csv = await apiService.exportApartmentsCsv(villaId);
       await exportCsvContent('apartments.csv', csv);
     } catch {
       await exportCsv('apartments.csv',
@@ -259,7 +268,7 @@ const ApartmentsScreen = () => {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.unitNumber}>Apartment {item.apartmentNumber}</Text>
-        <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] || '#6B7280' }]}>
+        <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] || theme.muted }]}>
           <Text style={styles.badgeText}>{item.status}</Text>
         </View>
       </View>
@@ -271,10 +280,13 @@ const ApartmentsScreen = () => {
         <Text style={[styles.balance, Number(item.currentBalance || 0) > 0 && styles.negative]}>Balance: {money(item.currentBalance)}</Text>
       </View>
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity>
+        {permissions.canManageVilla ? <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity> : null}
         <TouchableOpacity style={styles.smallBtn} onPress={() => setStatementApartment(item)}><Text style={styles.smallBtnText}>Statement</Text></TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setTimelineApartment(item)}><Ionicons name="time-outline" size={17} color="#D1FAE5" /></TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
+        {permissions.canManageVilla ? <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}>
+          <Ionicons name="trash-outline" size={15} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity> : null}
       </View>
     </View>
   );
@@ -285,32 +297,32 @@ const ApartmentsScreen = () => {
         <Text style={styles.title}>Apartments ({filteredApartments.length})</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.exportBtn} onPress={exportApartments}>
-            <Ionicons name="download-outline" size={17} color="#E5E7EB" />
+            <Ionicons name="download-outline" size={18} color={theme.text} />
             <Text style={styles.exportText}>CSV</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-            <Ionicons name="add" size={24} color="#fff" />
-          </TouchableOpacity>
+          {permissions.canManageVilla ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
+            <Ionicons name="add" size={24} color={theme.onPrimary} />
+          </TouchableOpacity> : null}
         </View>
       </View>
 
       <View style={styles.searchWrap}>
-        <Ionicons name="search" size={18} color="#9CA3AF" />
+        <Ionicons name="search" size={18} color={theme.muted} />
         <TextInput
           style={styles.search}
           placeholder="Search apartment, owner, tenant, phone, status..."
-          placeholderTextColor="#6B7280"
+          placeholderTextColor={theme.muted}
           value={query}
           onChangeText={setQuery}
         />
       </View>
 
-      {loading ? <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 40 }} /> :
+      {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> :
         filteredApartments.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="home-outline" size={64} color="#374151" />
             <Text style={styles.emptyText}>{query ? 'No apartments match your search' : 'No apartments yet'}</Text>
-            {!query ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>+ Add First Apartment</Text></TouchableOpacity> : null}
+            {!query && permissions.canManageVilla ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>+ Add First Apartment</Text></TouchableOpacity> : null}
           </View>
         ) : (
           <FlatList data={filteredApartments} renderItem={renderItem} keyExtractor={(i) => String(i.id)} contentContainerStyle={{ padding: 16 }} />
@@ -322,29 +334,29 @@ const ApartmentsScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>{editing ? 'Edit Apartment' : 'Add Apartment'}</Text>
               <Text style={styles.label}>Apartment Number *</Text>
-              <TextInput style={styles.input} value={form.apartmentNumber} onChangeText={(v) => setForm({ ...form, apartmentNumber: v })} placeholder="Apartment 1" placeholderTextColor="#6B7280" />
+              <TextInput style={styles.input} value={form.apartmentNumber} onChangeText={(v) => setForm({ ...form, apartmentNumber: v })} placeholder="Apartment 1" placeholderTextColor={theme.muted} />
               <Text style={styles.label}>Owner Name</Text>
-              <TextInput style={styles.input} value={form.ownerName} onChangeText={(v) => setForm({ ...form, ownerName: v })} placeholder="Owner name" placeholderTextColor="#6B7280" />
+              <TextInput style={styles.input} value={form.ownerName} onChangeText={(v) => setForm({ ...form, ownerName: v })} placeholder="Owner name" placeholderTextColor={theme.muted} />
               <Text style={styles.label}>Tenant Name</Text>
-              <TextInput style={styles.input} value={form.tenantName} onChangeText={(v) => setForm({ ...form, tenantName: v })} placeholder="Tenant name" placeholderTextColor="#6B7280" />
+              <TextInput style={styles.input} value={form.tenantName} onChangeText={(v) => setForm({ ...form, tenantName: v })} placeholder="Tenant name" placeholderTextColor={theme.muted} />
               <Text style={styles.label}>Phone</Text>
-              <TextInput style={styles.input} value={form.phoneNumber} onChangeText={(v) => setForm({ ...form, phoneNumber: v })} placeholder="Phone" placeholderTextColor="#6B7280" keyboardType="phone-pad" />
+              <TextInput style={styles.input} value={form.phoneNumber} onChangeText={(v) => setForm({ ...form, phoneNumber: v })} placeholder="Phone" placeholderTextColor={theme.muted} keyboardType="phone-pad" />
               <Text style={styles.label}>Opening Balance (EGP)</Text>
-              <TextInput style={styles.input} value={form.openingBalance} onChangeText={(v) => setForm({ ...form, openingBalance: v })} placeholder="0" placeholderTextColor="#6B7280" keyboardType="decimal-pad" />
+              <TextInput style={styles.input} value={form.openingBalance} onChangeText={(v) => setForm({ ...form, openingBalance: v })} placeholder="0" placeholderTextColor={theme.muted} keyboardType="decimal-pad" />
               <Text style={styles.label}>Type</Text>
-              <TextInput style={styles.input} value={form.apartmentType} onChangeText={(v) => setForm({ ...form, apartmentType: v })} placeholder="Owner / Tenant / Family" placeholderTextColor="#6B7280" />
+              <TextInput style={styles.input} value={form.apartmentType} onChangeText={(v) => setForm({ ...form, apartmentType: v })} placeholder="Owner / Tenant / Family" placeholderTextColor={theme.muted} />
               <Text style={styles.label}>Status</Text>
               <View style={styles.statusRow}>
                 {['ACTIVE', 'VACANT', 'MAINTENANCE'].map((s) => (
                   <TouchableOpacity key={s} style={[styles.statusBtn, form.status === s && { backgroundColor: STATUS_COLORS[s], borderColor: STATUS_COLORS[s] }]} onPress={() => setForm({ ...form, status: s })}>
-                    <Text style={[styles.statusText, form.status === s && { color: '#fff' }]}>{s}</Text>
+                    <Text style={[styles.statusText, form.status === s && { color: theme.onPrimary }]}>{s}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                  {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText}>{editing ? 'Save Changes' : 'Add Apartment'}</Text>}
+                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{editing ? 'Save Changes' : 'Add Apartment'}</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -358,13 +370,13 @@ const ApartmentsScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.statementHeader}>
                 <Text style={styles.modalTitle}>Statement</Text>
-                <TouchableOpacity onPress={() => setStatementApartment(null)}><Ionicons name="close" size={26} color="#9CA3AF" /></TouchableOpacity>
+                <TouchableOpacity onPress={() => setStatementApartment(null)}><Ionicons name="close" size={26} color={theme.muted} /></TouchableOpacity>
               </View>
               <Text style={styles.statementTitle}>Apartment {statementApartment?.apartmentNumber}</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Allocated</Text><Text style={styles.summaryValue}>{money(statement?.allocated)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Paid</Text><Text style={[styles.summaryValue, { color: '#10B981' }]}>{money(statement?.paid)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Balance</Text><Text style={[styles.summaryValue, { color: Number(statement?.balance || 0) > 0 ? '#EF4444' : '#10B981' }]}>{money(statement?.balance)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Paid</Text><Text style={[styles.summaryValue, { color: theme.primary }]}>{money(statement?.paid)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Balance</Text><Text style={[styles.summaryValue, { color: Number(statement?.balance || 0) > 0 ? theme.danger : theme.primary }]}>{money(statement?.balance)}</Text></View>
               </View>
               {statement?.rows.map((row, index) => (
                 <View key={index} style={styles.statementRow}>
@@ -387,7 +399,7 @@ const ApartmentsScreen = () => {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.statementHeader}>
                 <Text style={styles.modalTitle}>Apartment Timeline</Text>
-                <TouchableOpacity onPress={() => setTimelineApartment(null)}><Ionicons name="close" size={26} color="#9CA3AF" /></TouchableOpacity>
+                <TouchableOpacity onPress={() => setTimelineApartment(null)}><Ionicons name="close" size={26} color={theme.muted} /></TouchableOpacity>
               </View>
               <Text style={styles.statementTitle}>Apartment {timelineApartment?.apartmentNumber}</Text>
               <View style={styles.notesBox}>
@@ -416,73 +428,73 @@ const ApartmentsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1F2937' },
-  title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+const makeStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: theme.card },
+  title: { color: theme.text, fontSize: 18, fontWeight: 'bold' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  exportBtn: { backgroundColor: '#374151', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  exportText: { color: '#E5E7EB', fontSize: 12, fontWeight: '800' },
-  addBtn: { backgroundColor: '#10B981', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 0, backgroundColor: '#1F2937', borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#374151' },
-  search: { flex: 1, color: '#fff', paddingVertical: 12, fontSize: 14 },
-  card: { backgroundColor: '#1F2937', borderRadius: 12, padding: 16, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: '#10B981' },
+  exportBtn: { backgroundColor: theme.chip, borderRadius: 10, minHeight: 40, paddingHorizontal: 12, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: theme.border },
+  exportText: { color: theme.text, fontSize: 12, fontWeight: '800' },
+  addBtn: { backgroundColor: theme.primary, borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 0, backgroundColor: theme.card, borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: theme.chip },
+  search: { flex: 1, color: theme.text, paddingVertical: 12, fontSize: 14 },
+  card: { backgroundColor: theme.card, borderRadius: 12, padding: 16, marginBottom: 12, borderLeftWidth: 4, borderLeftColor: theme.primary },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  unitNumber: { color: '#fff', fontSize: 18, fontWeight: 'bold', flex: 1 },
+  unitNumber: { color: theme.text, fontSize: 18, fontWeight: 'bold', flex: 1 },
   badge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  line: { color: '#9CA3AF', fontSize: 13, marginBottom: 3 },
+  badgeText: { color: theme.onPrimary, fontSize: 11, fontWeight: '700' },
+  line: { color: theme.muted, fontSize: 13, marginBottom: 3 },
   balanceRow: { marginTop: 8, gap: 4 },
-  opening: { color: '#9CA3AF', fontSize: 13 },
-  balance: { color: '#10B981', fontSize: 15, fontWeight: '700' },
-  negative: { color: '#EF4444' },
+  opening: { color: theme.muted, fontSize: 13 },
+  balance: { color: theme.primary, fontSize: 15, fontWeight: '700' },
+  negative: { color: theme.danger },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
-  smallBtn: { backgroundColor: '#374151', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  smallBtnText: { color: '#E5E7EB', fontSize: 12, fontWeight: '700' },
+  smallBtn: { backgroundColor: theme.chip, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  smallBtnText: { color: theme.subtleText, fontSize: 12, fontWeight: '700' },
   iconBtn: { backgroundColor: '#064E3B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  deleteBtn: { backgroundColor: '#3B1F26', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  deleteText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700' },
+  deleteBtn: { backgroundColor: theme.mode === 'light' ? '#FEE2E2' : '#3B1F26', borderColor: theme.mode === 'light' ? '#FCA5A5' : '#7F1D1D', borderWidth: 1, borderRadius: 8, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  deleteText: { color: theme.mode === 'light' ? '#B91C1C' : theme.dangerText, fontSize: 12, fontWeight: '800' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
-  emptyText: { color: '#9CA3AF', fontSize: 16, marginTop: 12, marginBottom: 24, textAlign: 'center' },
-  addFirstBtn: { backgroundColor: '#10B981', borderRadius: 10, paddingHorizontal: 24, paddingVertical: 14 },
-  addFirstText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  emptyText: { color: theme.muted, fontSize: 16, marginTop: 12, marginBottom: 24, textAlign: 'center' },
+  addFirstBtn: { backgroundColor: theme.primary, borderRadius: 10, paddingHorizontal: 24, paddingVertical: 14 },
+  addFirstText: { color: theme.text, fontSize: 15, fontWeight: '600' },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: '#1F2937', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
-  modalTitle: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
-  label: { color: '#9CA3AF', fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
-  input: { backgroundColor: '#374151', borderRadius: 10, padding: 14, color: '#fff', marginBottom: 8, fontSize: 15, borderWidth: 1, borderColor: '#4B5563' },
+  modal: { backgroundColor: theme.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },
+  modalTitle: { color: theme.text, fontSize: 22, fontWeight: 'bold', marginBottom: 16 },
+  label: { color: theme.muted, fontSize: 13, fontWeight: '600', marginBottom: 6, marginTop: 4 },
+  input: { backgroundColor: theme.chip, borderRadius: 10, padding: 14, color: theme.text, marginBottom: 8, fontSize: 15, borderWidth: 1, borderColor: theme.border },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 20 },
-  statusBtn: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#374151', alignItems: 'center', borderWidth: 1, borderColor: '#4B5563' },
-  statusText: { color: '#9CA3AF', fontSize: 12, fontWeight: '700' },
+  statusBtn: { borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: theme.chip, alignItems: 'center', borderWidth: 1, borderColor: theme.border },
+  statusText: { color: theme.muted, fontSize: 12, fontWeight: '700' },
   modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  cancelBtn: { flex: 1, backgroundColor: '#374151', borderRadius: 10, padding: 14, alignItems: 'center' },
-  cancelText: { color: '#9CA3AF', fontSize: 15, fontWeight: '600' },
-  saveBtn: { flex: 2, backgroundColor: '#10B981', borderRadius: 10, padding: 14, alignItems: 'center' },
-  saveText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  cancelBtn: { flex: 1, backgroundColor: theme.chip, borderRadius: 10, padding: 14, alignItems: 'center' },
+  cancelText: { color: theme.muted, fontSize: 15, fontWeight: '600' },
+  saveBtn: { flex: 2, backgroundColor: theme.primary, borderRadius: 10, padding: 14, alignItems: 'center' },
+  saveText: { color: theme.onPrimary, fontSize: 15, fontWeight: '700' },
   statementHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statementTitle: { color: '#9CA3AF', marginBottom: 14 },
+  statementTitle: { color: theme.muted, marginBottom: 14 },
   summaryGrid: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  summaryBox: { flex: 1, backgroundColor: '#111827', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#374151' },
-  summaryLabel: { color: '#9CA3AF', fontSize: 11 },
-  summaryValue: { color: '#fff', fontSize: 13, fontWeight: '800', marginTop: 4 },
-  statementRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#374151' },
-  statementDetail: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  statementDate: { color: '#6B7280', fontSize: 11, marginTop: 2 },
-  debit: { color: '#EF4444', fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
-  credit: { color: '#10B981', fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
+  summaryBox: { flex: 1, backgroundColor: theme.background, borderRadius: 10, padding: 10, borderWidth: 1, borderColor: theme.chip },
+  summaryLabel: { color: theme.muted, fontSize: 11 },
+  summaryValue: { color: theme.text, fontSize: 13, fontWeight: '800', marginTop: 4 },
+  statementRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderTopWidth: 1, borderTopColor: theme.chip },
+  statementDetail: { color: theme.text, fontSize: 13, fontWeight: '600' },
+  statementDate: { color: theme.muted, fontSize: 11, marginTop: 2 },
+  debit: { color: theme.danger, fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
+  credit: { color: theme.primary, fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
   notesBox: { borderWidth: 1, borderColor: '#065F46', borderStyle: 'dashed', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: '#12342F' },
   notesLabel: { color: '#D1FAE5', fontWeight: '900', marginBottom: 4 },
-  notesText: { color: '#D1D5DB', lineHeight: 19 },
+  notesText: { color: theme.subtleText, lineHeight: 19 },
   timelineWrap: { borderLeftWidth: 2, borderLeftColor: '#166534', marginLeft: 10, paddingLeft: 18 },
   timelineRow: { flexDirection: 'row', marginBottom: 14, marginLeft: -29 },
   timelineRail: { width: 22, alignItems: 'center', paddingTop: 18 },
-  timelineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FCA5A5', borderWidth: 2, borderColor: '#1F2937' },
+  timelineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: theme.dangerText, borderWidth: 2, borderColor: theme.card },
   paymentDot: { backgroundColor: '#86EFAC' },
   createdDot: { backgroundColor: '#93C5FD' },
   timelineCard: { flex: 1, backgroundColor: '#15363D', borderWidth: 1, borderColor: '#27515A', borderRadius: 12, padding: 12 },
   timelineDate: { color: '#A7F3D0', fontSize: 12, marginBottom: 4 },
-  timelineTitle: { color: '#fff', fontSize: 14, fontWeight: '900', marginBottom: 4 },
-  timelineDetail: { color: '#D1D5DB', fontSize: 13, lineHeight: 18 },
+  timelineTitle: { color: theme.text, fontSize: 14, fontWeight: '900', marginBottom: 4 },
+  timelineDetail: { color: theme.subtleText, fontSize: 13, lineHeight: 18 },
 });
 
 export default ApartmentsScreen;

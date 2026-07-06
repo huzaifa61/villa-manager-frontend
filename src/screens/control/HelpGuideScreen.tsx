@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppPreferences } from '../../context/AppPreferences';
 
 const sections = [
   {
@@ -121,6 +122,8 @@ const sections = [
 ];
 
 export default function HelpGuideScreen() {
+  const { theme } = useAppPreferences();
+  const styles = makeStyles(theme);
   const [query, setQuery] = useState('');
   const filtered = useMemo(() => sections.filter((section) => {
     const text = [section.title, ...section.body].join(' ').toLowerCase();
@@ -135,9 +138,9 @@ export default function HelpGuideScreen() {
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.searchWrap}>
-          <Ionicons name="search-outline" size={18} color="#9CA3AF" />
-          <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search in the help guide..." placeholderTextColor="#6B7280" />
-          {query ? <TouchableOpacity onPress={() => setQuery('')}><Ionicons name="close-circle-outline" size={19} color="#9CA3AF" /></TouchableOpacity> : null}
+          <Ionicons name="search-outline" size={18} color={theme.muted} />
+          <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search in the help guide..." placeholderTextColor={theme.muted} />
+          {query ? <TouchableOpacity onPress={() => setQuery('')}><Ionicons name="close-circle-outline" size={19} color={theme.muted} /></TouchableOpacity> : null}
         </View>
 
         {filtered.map((section) => (
@@ -154,7 +157,7 @@ export default function HelpGuideScreen() {
 
         {filtered.length === 0 ? (
           <View style={styles.empty}>
-            <Ionicons name="help-circle-outline" size={42} color="#6B7280" />
+            <Ionicons name="help-circle-outline" size={42} color={theme.muted} />
             <Text style={styles.emptyTitle}>No guide results.</Text>
           </View>
         ) : null}
@@ -163,19 +166,19 @@ export default function HelpGuideScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { padding: 16, backgroundColor: '#1F2937' },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  subtitle: { color: '#9CA3AF', marginTop: 4 },
+const makeStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { padding: 16, backgroundColor: theme.card },
+  title: { color: theme.text, fontSize: 22, fontWeight: 'bold' },
+  subtitle: { color: theme.muted, marginTop: 4 },
   content: { padding: 16, paddingBottom: 28, gap: 12 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#1F2937', borderColor: '#374151', borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
-  search: { color: '#fff', flex: 1, paddingVertical: 11 },
-  card: { backgroundColor: '#1F2937', borderColor: '#374151', borderWidth: 1, borderRadius: 12, padding: 14 },
-  cardTitle: { color: '#fff', fontSize: 18, fontWeight: '900', marginBottom: 8 },
+  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.card, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12 },
+  search: { color: theme.text, flex: 1, paddingVertical: 11 },
+  card: { backgroundColor: theme.card, borderColor: theme.chip, borderWidth: 1, borderRadius: 12, padding: 14 },
+  cardTitle: { color: theme.text, fontSize: 18, fontWeight: '900', marginBottom: 8 },
   line: { flexDirection: 'row', gap: 9, marginTop: 7, alignItems: 'flex-start' },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginTop: 7 },
-  body: { color: '#D1D5DB', flex: 1, lineHeight: 20 },
-  empty: { alignItems: 'center', padding: 26, backgroundColor: '#1F2937', borderRadius: 12, borderWidth: 1, borderColor: '#374151' },
-  emptyTitle: { color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: theme.primary, marginTop: 7 },
+  body: { color: theme.subtleText, flex: 1, lineHeight: 20 },
+  empty: { alignItems: 'center', padding: 26, backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.chip },
+  emptyTitle: { color: theme.text, fontSize: 16, fontWeight: '900', marginTop: 10 },
 });

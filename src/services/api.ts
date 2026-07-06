@@ -44,6 +44,38 @@ export const apiService = {
     const { data } = await api.post('/v1/auth/register', body);
     return unwrap(data);
   },
+  acceptInvite: async (body: { token: string; fullName: string; password: string; phoneNumber?: string }) => {
+    const { data } = await api.post('/v1/auth/accept-invite', body);
+    return unwrap(data);
+  },
+  getUsers: async () => {
+    const { data } = await api.get('/v1/users');
+    return unwrap(data);
+  },
+  getVillas: async () => {
+    const { data } = await api.get('/v1/villas');
+    return unwrap(data);
+  },
+  createVilla: async (body: any) => {
+    const { data } = await api.post('/v1/villas', body);
+    return unwrap(data);
+  },
+  deleteVilla: async (villaId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId);
+    return unwrap(data);
+  },
+  inviteUser: async (body: { email: string; fullName?: string; phoneNumber?: string; role: string; villaId?: number }) => {
+    const { data } = await api.post('/v1/users/invite', body);
+    return unwrap(data);
+  },
+  updateUser: async (userId: number, body: any) => {
+    const { data } = await api.put('/v1/users/' + userId, body);
+    return unwrap(data);
+  },
+  deleteUser: async (userId: number) => {
+    const { data } = await api.delete('/v1/users/' + userId);
+    return unwrap(data);
+  },
   getApartments: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/apartments');
     return unwrap(data);

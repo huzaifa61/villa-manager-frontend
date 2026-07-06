@@ -3,6 +3,9 @@ export interface User {
   email: string;
   fullName: string;
   role: 'GENERAL_MANAGER' | 'VILLA_MANAGER' | 'VIEWER';
+  villaId?: number;
+  isActive?: boolean;
+  invitationStatus?: string;
 }
 
 export interface Apartment {

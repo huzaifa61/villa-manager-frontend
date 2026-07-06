@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
+import { useAppPreferences } from '../../context/AppPreferences';
+import { RootState } from '../../store';
+import { exportCsv } from '../../utils/csv';
 
 const VILLA_ID = 1;
 const CATEGORIES = ['Maintenance', 'Utilities', 'Cleaning', 'Security', 'Management', 'Other'];
@@ -9,6 +13,10 @@ const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
 
 export default function ReportsScreen() {
+  const { theme } = useAppPreferences();
+  const { user } = useSelector((s: RootState) => s.auth);
+  const villaId = user?.villaId || VILLA_ID;
+  const styles = makeStyles(theme);
   const [apartments, setApartments] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
@@ -19,9 +27,9 @@ export default function ReportsScreen() {
     try {
       setLoading(true);
       const [a, e, p] = await Promise.all([
-        apiService.getApartments(VILLA_ID).catch(() => []),
-        apiService.getExpenses(VILLA_ID).catch(() => []),
-        apiService.getPayments(VILLA_ID).catch(() => []),
+        apiService.getApartments(villaId).catch(() => []),
+        apiService.getExpenses(villaId).catch(() => []),
+        apiService.getPayments(villaId).catch(() => []),
       ]);
       setApartments(Array.isArray(a) ? a : []);
       setExpenses(Array.isArray(e) ? e : []);
@@ -31,7 +39,7 @@ export default function ReportsScreen() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [villaId]);
 
   const totals = useMemo(() => {
     const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
@@ -111,19 +119,65 @@ export default function ReportsScreen() {
     { key: 'category', label: 'Category' },
   ];
 
+  const reportData = () => {
+    if (activeTab === 'ledger') {
+      return {
+        filename: 'ledger-report.csv',
+        headers: ['Date', 'Type', 'Detail', 'Amount', 'Running Balance'],
+        rows: ledgerRows.map((row) => [row.date, row.type, row.detail, row.amount, row.running]),
+      };
+    }
+    if (activeTab === 'monthly') {
+      return {
+        filename: 'monthly-report.csv',
+        headers: ['Month', 'Expenses', 'Collected', 'Balance'],
+        rows: monthlyRows.map((row) => [row.month, row.expenses, row.collected, row.collected - row.expenses]),
+      };
+    }
+    if (activeTab === 'category') {
+      return {
+        filename: 'category-report.csv',
+        headers: ['Category', 'Amount'],
+        rows: categoryRows.map((row) => [row.category, row.amount]),
+      };
+    }
+    return {
+      filename: 'balance-report.csv',
+      headers: ['Apartment', 'Owner', 'Opening', 'Allocated', 'Paid', 'Balance'],
+      rows: balanceRows.map((row) => [row.apartment, row.owner, row.opening, row.allocated, row.paid, row.balance]),
+    };
+  };
+
+  const exportReport = async () => {
+    const data = reportData();
+    await exportCsv(data.filename, data.headers, data.rows);
+  };
+
+  const printReport = async () => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.print();
+      return;
+    }
+    await exportReport();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Reports</Text>
-        <TouchableOpacity style={styles.refresh} onPress={fetchData}><Text style={styles.refreshText}>Refresh</Text></TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.refresh} onPress={exportReport}><Text style={styles.refreshText}>CSV</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.refresh} onPress={printReport}><Text style={styles.refreshText}>Print</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.refresh} onPress={fetchData}><Text style={styles.refreshText}>Refresh</Text></TouchableOpacity>
+        </View>
       </View>
-      {loading ? <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 40 }} /> : (
+      {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> : (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.cards}>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Expenses</Text><Text style={[styles.cardValue, { color: '#EF4444' }]}>{money(totals.totalExpenses)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Collected</Text><Text style={[styles.cardValue, { color: '#10B981' }]}>{money(totals.totalCollected)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Cash Balance</Text><Text style={[styles.cardValue, { color: totals.cashBalance >= 0 ? '#10B981' : '#EF4444' }]}>{money(totals.cashBalance)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Unpaid</Text><Text style={[styles.cardValue, { color: '#EF4444' }]}>{money(totals.totalUnpaid)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>Total Expenses</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalExpenses)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>Total Collected</Text><Text style={[styles.cardValue, { color: theme.primary }]}>{money(totals.totalCollected)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>Cash Balance</Text><Text style={[styles.cardValue, { color: totals.cashBalance >= 0 ? theme.primary : theme.danger }]}>{money(totals.cashBalance)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>Total Unpaid</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalUnpaid)}</Text></View>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
@@ -143,7 +197,7 @@ export default function ReportsScreen() {
                     <Text style={styles.muted}>{row.owner}</Text>
                     <Text style={styles.muted}>Opening {money(row.opening)} • Allocated {money(row.allocated)} • Paid {money(row.paid)}</Text>
                   </View>
-                  <Text style={[styles.amount, { color: row.balance > 0 ? '#EF4444' : '#10B981' }]}>{money(row.balance)}</Text>
+                  <Text style={[styles.amount, { color: row.balance > 0 ? theme.danger : theme.primary }]}>{money(row.balance)}</Text>
                 </View>
               ))}
             </View>
@@ -157,7 +211,7 @@ export default function ReportsScreen() {
                     <Text style={styles.primary}>{row.detail}</Text>
                     <Text style={styles.muted}>{row.date} • {row.type} • Running {money(row.running)}</Text>
                   </View>
-                  <Text style={[styles.amount, { color: row.amount >= 0 ? '#10B981' : '#EF4444' }]}>{money(row.amount)}</Text>
+                  <Text style={[styles.amount, { color: row.amount >= 0 ? theme.primary : theme.danger }]}>{money(row.amount)}</Text>
                 </View>
               ))}
             </View>
@@ -171,7 +225,7 @@ export default function ReportsScreen() {
                     <Text style={styles.primary}>{row.month}</Text>
                     <Text style={styles.muted}>Expenses {money(row.expenses)} • Collected {money(row.collected)}</Text>
                   </View>
-                  <Text style={[styles.amount, { color: row.collected - row.expenses >= 0 ? '#10B981' : '#EF4444' }]}>{money(row.collected - row.expenses)}</Text>
+                  <Text style={[styles.amount, { color: row.collected - row.expenses >= 0 ? theme.primary : theme.danger }]}>{money(row.collected - row.expenses)}</Text>
                 </View>
               ))}
             </View>
@@ -182,7 +236,7 @@ export default function ReportsScreen() {
               {categoryRows.map((row) => (
                 <View key={row.category} style={styles.row}>
                   <Text style={styles.primary}>{row.category}</Text>
-                  <Text style={[styles.amount, { color: '#EF4444' }]}>{money(row.amount)}</Text>
+                  <Text style={[styles.amount, { color: theme.danger }]}>{money(row.amount)}</Text>
                 </View>
               ))}
             </View>
@@ -193,25 +247,26 @@ export default function ReportsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1F2937' },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  refresh: { backgroundColor: '#374151', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  refreshText: { color: '#E5E7EB', fontWeight: '700' },
+const makeStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: theme.card },
+  title: { color: theme.text, fontSize: 22, fontWeight: 'bold' },
+  headerActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  refresh: { backgroundColor: theme.chip, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  refreshText: { color: theme.subtleText, fontWeight: '700' },
   content: { padding: 16 },
   cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  card: { width: '48%', backgroundColor: '#1F2937', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#374151' },
-  cardLabel: { color: '#9CA3AF', fontSize: 12, marginBottom: 8 },
+  card: { width: '48%', backgroundColor: theme.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: theme.chip },
+  cardLabel: { color: theme.muted, fontSize: 12, marginBottom: 8 },
   cardValue: { fontSize: 18, fontWeight: '900' },
   tabScroll: { marginBottom: 14 },
-  tab: { backgroundColor: '#374151', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, marginRight: 8 },
-  tabActive: { backgroundColor: '#10B981' },
-  tabText: { color: '#D1D5DB', fontSize: 13, fontWeight: '700' },
-  tabTextActive: { color: '#fff' },
-  table: { backgroundColor: '#1F2937', borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#374151' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: '#374151' },
-  primary: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  muted: { color: '#9CA3AF', fontSize: 12, marginTop: 3 },
+  tab: { backgroundColor: theme.chip, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, marginRight: 8 },
+  tabActive: { backgroundColor: theme.primary },
+  tabText: { color: theme.subtleText, fontSize: 13, fontWeight: '700' },
+  tabTextActive: { color: theme.text },
+  table: { backgroundColor: theme.card, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: theme.chip },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: 14, borderBottomWidth: 1, borderBottomColor: theme.chip },
+  primary: { color: theme.text, fontSize: 14, fontWeight: '800' },
+  muted: { color: theme.muted, fontSize: 12, marginTop: 3 },
   amount: { fontSize: 14, fontWeight: '900', textAlign: 'right' },
 });

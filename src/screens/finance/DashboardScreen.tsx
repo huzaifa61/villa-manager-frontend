@@ -6,12 +6,16 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { logoutUser } from '../../store/slices/authSlice';
 import { apiService } from '../../services/api';
+import { useAppPreferences } from '../../context/AppPreferences';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export default function DashboardScreen({ navigation }: any) {
+  const { theme, t, textAlign, rowDirection, direction } = useAppPreferences();
+  const s = makeStyles(theme, textAlign, rowDirection, direction);
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((s: RootState) => s.auth);
+  const villaId = user?.villaId || 1;
   const [stats, setStats] = useState({ apts: 0, occupied: 0, collected: 0, expenses: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -19,9 +23,9 @@ export default function DashboardScreen({ navigation }: any) {
       try {
         setLoading(true);
         const [a, p, e] = await Promise.all([
-          apiService.getApartments(1).catch(() => []),
-          apiService.getPayments(1).catch(() => []),
-          apiService.getExpenses(1).catch(() => []),
+          apiService.getApartments(villaId).catch(() => []),
+          apiService.getPayments(villaId).catch(() => []),
+          apiService.getExpenses(villaId).catch(() => []),
         ]);
         const apts = Array.isArray(a) ? a : [];
         const pays = Array.isArray(p) ? p : [];
@@ -33,34 +37,34 @@ export default function DashboardScreen({ navigation }: any) {
           expenses: exps.reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
         });
       } finally { setLoading(false); }
-  }, []);
+  }, [villaId]);
 
   useFocusEffect(useCallback(() => {
     loadStats();
   }, [loadStats]));
 
   const cards = [
-    { label: 'Total Units', value: String(stats.apts), icon: 'home-outline' as IconName, color: '#3B82F6', nav: 'Apartments' },
-    { label: 'Occupied', value: String(stats.occupied), icon: 'people-outline' as IconName, color: '#10B981', nav: 'Apartments' },
-    { label: 'Collected', value: 'EGP ' + stats.collected.toLocaleString(), icon: 'cash-outline' as IconName, color: '#10B981', nav: 'Payments' },
-    { label: 'Expenses', value: 'EGP ' + stats.expenses.toLocaleString(), icon: 'receipt-outline' as IconName, color: '#EF4444', nav: 'Expenses' },
+    { label: 'Total Units', value: String(stats.apts), icon: 'home-outline' as IconName, color: theme.secondary, nav: 'Apartments' },
+    { label: 'Occupied', value: String(stats.occupied), icon: 'people-outline' as IconName, color: theme.primary, nav: 'Apartments' },
+    { label: 'Collected', value: 'EGP ' + stats.collected.toLocaleString(), icon: 'cash-outline' as IconName, color: theme.primary, nav: 'Payments' },
+    { label: t('expenses'), value: 'EGP ' + stats.expenses.toLocaleString(), icon: 'receipt-outline' as IconName, color: theme.danger, nav: 'Expenses' },
   ];
 
   return (
     <SafeAreaView style={s.container}>
       <View style={s.header}>
         <View>
-          <Text style={s.welcome}>Welcome back 👋</Text>
+          <Text style={s.welcome}>Welcome back</Text>
           <Text style={s.name}>{user?.fullName || user?.email || 'Manager'}</Text>
           <Text style={s.role}>{user?.role || 'GENERAL_MANAGER'}</Text>
         </View>
         <TouchableOpacity onPress={() => dispatch(logoutUser())} style={s.logout}>
-          <Ionicons name="log-out-outline" size={26} color="#EF4444" />
+          <Ionicons name="log-out-outline" size={26} color={theme.danger} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {loading ? <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 40 }} /> : (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> : (
           <>
             <Text style={s.section}>Overview</Text>
             <View style={s.grid}>
@@ -76,9 +80,9 @@ export default function DashboardScreen({ navigation }: any) {
             <Text style={s.section}>Quick Actions</Text>
             <View style={s.actions}>
               {[
-                { label: 'Apartments', icon: 'home' as IconName, color: '#3B82F6', nav: 'Apartments' },
-                { label: 'Payments', icon: 'card' as IconName, color: '#10B981', nav: 'Payments' },
-                { label: 'Expenses', icon: 'receipt' as IconName, color: '#EF4444', nav: 'Expenses' },
+                { label: t('apartments'), icon: 'home' as IconName, color: theme.secondary, nav: 'Apartments' },
+                { label: t('payments'), icon: 'card' as IconName, color: theme.primary, nav: 'Payments' },
+                { label: t('expenses'), icon: 'receipt' as IconName, color: theme.danger, nav: 'Expenses' },
               ].map((a) => (
                 <TouchableOpacity key={a.label} style={s.actionBtn} onPress={() => navigation.navigate(a.nav)}>
                   <View style={[s.actionIcon, { backgroundColor: a.color + '22' }]}>
@@ -90,12 +94,12 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
 
             <View style={s.summary}>
-              <Text style={s.summaryTitle}>💰 Financial Summary</Text>
-              <View style={s.row}><Text style={s.rowLbl}>Total Collected</Text><Text style={[s.rowVal, { color: '#10B981' }]}>EGP {stats.collected.toLocaleString()}</Text></View>
-              <View style={s.row}><Text style={s.rowLbl}>Total Expenses</Text><Text style={[s.rowVal, { color: '#EF4444' }]}>EGP {stats.expenses.toLocaleString()}</Text></View>
+              <Text style={s.summaryTitle}>Financial Summary</Text>
+              <View style={s.row}><Text style={s.rowLbl}>Total Collected</Text><Text style={[s.rowVal, { color: theme.primary }]}>EGP {stats.collected.toLocaleString()}</Text></View>
+              <View style={s.row}><Text style={s.rowLbl}>Total Expenses</Text><Text style={[s.rowVal, { color: theme.danger }]}>EGP {stats.expenses.toLocaleString()}</Text></View>
               <View style={[s.row, s.netRow]}>
                 <Text style={s.rowLbl}>Net Income</Text>
-                <Text style={[s.rowVal, { color: stats.collected - stats.expenses >= 0 ? '#10B981' : '#EF4444' }]}>
+                <Text style={[s.rowVal, { color: stats.collected - stats.expenses >= 0 ? theme.primary : theme.danger }]}>
                   EGP {(stats.collected - stats.expenses).toLocaleString()}
                 </Text>
               </View>
@@ -107,26 +111,26 @@ export default function DashboardScreen({ navigation }: any) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1F2937' },
-  welcome: { color: '#9CA3AF', fontSize: 13 },
-  name: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  role: { color: '#10B981', fontSize: 12, marginTop: 2 },
+const makeStyles = (theme: any, textAlign: 'right' | 'left', rowDirection: 'row-reverse' | 'row', direction: 'rtl' | 'ltr') => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: rowDirection, justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: theme.header },
+  welcome: { color: theme.muted, fontSize: 13, textAlign, writingDirection: direction },
+  name: { color: theme.text, fontSize: 20, fontWeight: 'bold', textAlign, writingDirection: direction },
+  role: { color: theme.primary, fontSize: 12, marginTop: 2, textAlign, writingDirection: direction },
   logout: { padding: 8 },
-  section: { color: '#6B7280', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, marginTop: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  card: { width: '47%', backgroundColor: '#1F2937', borderRadius: 14, padding: 16 },
-  cardVal: { color: '#fff', fontSize: 20, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
-  cardLbl: { color: '#9CA3AF', fontSize: 13 },
-  actions: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  section: { color: theme.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12, marginTop: 8, textAlign, writingDirection: direction },
+  grid: { flexDirection: rowDirection, flexWrap: 'wrap', gap: 12, marginBottom: 24 },
+  card: { width: '47%', backgroundColor: theme.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: theme.border },
+  cardVal: { color: theme.text, fontSize: 20, fontWeight: 'bold', marginTop: 10, marginBottom: 4, textAlign, writingDirection: direction },
+  cardLbl: { color: theme.muted, fontSize: 13, textAlign, writingDirection: direction },
+  actions: { flexDirection: rowDirection, gap: 12, marginBottom: 24 },
   actionBtn: { flex: 1, alignItems: 'center' },
   actionIcon: { width: 60, height: 60, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  actionLbl: { color: '#9CA3AF', fontSize: 12 },
-  summary: { backgroundColor: '#1F2937', borderRadius: 14, padding: 16 },
-  summaryTitle: { color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 16 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  netRow: { borderTopWidth: 1, borderTopColor: '#374151', paddingTop: 12, marginTop: 4 },
-  rowLbl: { color: '#9CA3AF', fontSize: 14 },
+  actionLbl: { color: theme.muted, fontSize: 12, textAlign, writingDirection: direction },
+  summary: { backgroundColor: theme.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: theme.border },
+  summaryTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 16, textAlign, writingDirection: direction },
+  row: { flexDirection: rowDirection, justifyContent: 'space-between', marginBottom: 12 },
+  netRow: { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 12, marginTop: 4 },
+  rowLbl: { color: theme.muted, fontSize: 14, textAlign, writingDirection: direction },
   rowVal: { fontSize: 15, fontWeight: '700' },
 });

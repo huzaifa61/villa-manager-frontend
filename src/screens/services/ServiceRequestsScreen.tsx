@@ -6,6 +6,8 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { apiService } from '../../services/api';
 import { exportCsv } from '../../utils/csv';
+import { useAppPreferences } from '../../context/AppPreferences';
+import { permissionsFor } from '../../utils/permissions';
 
 const VILLA_ID = 1;
 const categories = ['Electrician', 'Plumber', 'Carpenter', 'Painter', 'Pest Control', 'CCTV', 'Internet', 'Elevator', 'Pump', 'Generator', 'Cleaning', 'Gardener', 'Security', 'Porter', 'Legal / Admin', 'General Maintenance', 'Emergency', 'Other'];
@@ -24,7 +26,11 @@ const initialForm = {
 };
 
 export default function ServiceRequestsScreen() {
+  const { theme } = useAppPreferences();
+  const styles = makeStyles(theme);
   const { user } = useSelector((s: RootState) => s.auth);
+  const permissions = permissionsFor(user);
+  const villaId = user?.villaId || VILLA_ID;
   const [requests, setRequests] = useState<any[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);
@@ -37,8 +43,8 @@ export default function ServiceRequestsScreen() {
     try {
       setLoading(true);
       const [serviceData, apartmentData, vendorData] = await Promise.all([
-        apiService.getServiceRequests(VILLA_ID).catch(() => []),
-        apiService.getApartments(VILLA_ID).catch(() => []),
+        apiService.getServiceRequests(villaId).catch(() => []),
+        apiService.getApartments(villaId).catch(() => []),
         apiService.getVendors().catch(() => []),
       ]);
       setRequests(Array.isArray(serviceData) ? serviceData : []);
@@ -70,7 +76,7 @@ export default function ServiceRequestsScreen() {
     }
     try {
       setSaving(true);
-      await apiService.createServiceRequest(VILLA_ID, {
+      await apiService.createServiceRequest(villaId, {
         ...form,
         apartmentId: form.apartmentId || undefined,
       });
@@ -86,7 +92,7 @@ export default function ServiceRequestsScreen() {
 
   const updateStatus = async (request: any, status: string) => {
     try {
-      await apiService.updateServiceRequest(VILLA_ID, request.id, {
+      await apiService.updateServiceRequest(villaId, request.id, {
         description: request.description,
         apartmentId: request.apartmentId,
         vendorId: request.vendorId,
@@ -106,7 +112,7 @@ export default function ServiceRequestsScreen() {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
-          await apiService.deleteServiceRequest(VILLA_ID, request.id);
+          await apiService.deleteServiceRequest(villaId, request.id);
           await fetchData();
         },
       },
@@ -127,8 +133,8 @@ export default function ServiceRequestsScreen() {
 
   const actionButton = (label: string, icon: IconName, onPress: () => void, primary = false) => (
     <TouchableOpacity style={[styles.button, primary && styles.primaryButton]} onPress={onPress}>
-      <Ionicons name={icon} size={17} color="#fff" />
-      <Text style={styles.buttonText}>{label}</Text>
+      <Ionicons name={icon} size={17} color={primary ? theme.onPrimary : theme.text} />
+      <Text style={[styles.buttonText, primary && styles.primaryButtonText]}>{label}</Text>
     </TouchableOpacity>
   );
 
@@ -185,13 +191,13 @@ export default function ServiceRequestsScreen() {
             </ScrollView>
 
             <Text style={styles.label}>Description</Text>
-            <TextInput style={[styles.input, styles.textarea]} value={form.description} onChangeText={(description) => setForm({ ...form, description })} placeholder="Describe the issue" placeholderTextColor="#6B7280" multiline />
+            <TextInput style={[styles.input, styles.textarea]} value={form.description} onChangeText={(description) => setForm({ ...form, description })} placeholder="Describe the issue" placeholderTextColor={theme.muted} multiline />
 
             <Text style={styles.label}>Preferred Contact</Text>
-            <TextInput style={styles.input} value={form.preferredContact} onChangeText={(preferredContact) => setForm({ ...form, preferredContact })} placeholder="Phone, WhatsApp, or email" placeholderTextColor="#6B7280" />
+            <TextInput style={styles.input} value={form.preferredContact} onChangeText={(preferredContact) => setForm({ ...form, preferredContact })} placeholder="Phone, WhatsApp, or email" placeholderTextColor={theme.muted} />
 
             <Text style={styles.label}>Notes</Text>
-            <TextInput style={[styles.input, styles.textareaSmall]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder="Optional access notes" placeholderTextColor="#6B7280" multiline />
+            <TextInput style={[styles.input, styles.textareaSmall]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder="Optional access notes" placeholderTextColor={theme.muted} multiline />
 
             <TouchableOpacity style={[styles.saveButton, saving && styles.disabled]} onPress={saveRequest} disabled={saving}>
               <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Request'}</Text>
@@ -199,11 +205,11 @@ export default function ServiceRequestsScreen() {
           </View>
         ) : null}
 
-        {loading ? <ActivityIndicator size="large" color="#10B981" style={{ marginTop: 40 }} /> : (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> : (
           <View style={styles.list}>
             {requests.length === 0 ? (
               <View style={styles.empty}>
-                <Ionicons name="construct-outline" size={42} color="#6B7280" />
+                <Ionicons name="construct-outline" size={42} color={theme.muted} />
                 <Text style={styles.emptyTitle}>No service requests yet.</Text>
                 <Text style={styles.emptyText}>Create a request for maintenance, cleaning, security, internet, or other villa support.</Text>
               </View>
@@ -220,16 +226,17 @@ export default function ServiceRequestsScreen() {
                     <Text style={[styles.badge, request.status === 'COMPLETED' && styles.doneBadge]}>{String(request.status || 'OPEN').replace('_', ' ')}</Text>
                   </View>
                   {request.notes ? <Text style={styles.notes}>{request.notes}</Text> : null}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusRow}>
+                  {permissions.canManageServiceRequests ? <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusRow}>
                     {statuses.map((status) => (
                       <TouchableOpacity key={status} style={[styles.smallChoice, request.status === status && styles.choiceActive]} onPress={() => updateStatus(request, status)}>
                         <Text style={[styles.choiceText, request.status === status && styles.choiceTextActive]}>{status.replace('_', ' ')}</Text>
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity style={styles.deleteChip} onPress={() => removeRequest(request)}>
+                      <Ionicons name="trash-outline" size={14} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
                       <Text style={styles.deleteText}>Delete</Text>
                     </TouchableOpacity>
-                  </ScrollView>
+                  </ScrollView> : null}
                 </View>
               );
             })}
@@ -240,46 +247,47 @@ export default function ServiceRequestsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#111827' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 16, backgroundColor: '#1F2937' },
-  title: { color: '#fff', fontSize: 22, fontWeight: 'bold' },
-  subtitle: { color: '#9CA3AF', marginTop: 3, fontSize: 12 },
+const makeStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 16, backgroundColor: theme.card },
+  title: { color: theme.text, fontSize: 22, fontWeight: 'bold' },
+  subtitle: { color: theme.muted, marginTop: 3, fontSize: 12 },
   headerActions: { flexDirection: 'row', gap: 8 },
-  button: { backgroundColor: '#374151', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', gap: 5, alignItems: 'center' },
-  primaryButton: { backgroundColor: '#10B981' },
-  buttonText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+  button: { backgroundColor: theme.chip, borderRadius: 8, minHeight: 40, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', gap: 5, alignItems: 'center' },
+  primaryButton: { backgroundColor: theme.primary },
+  buttonText: { color: theme.text, fontWeight: '800', fontSize: 12 },
+  primaryButtonText: { color: theme.onPrimary },
   content: { padding: 16, paddingBottom: 28 },
   notice: { backgroundColor: '#0F2230', borderColor: '#1F3A4D', borderWidth: 1, padding: 12, borderRadius: 10, flexDirection: 'row', gap: 8, marginBottom: 14 },
   noticeText: { color: '#93C5FD', flex: 1, lineHeight: 18 },
-  panel: { backgroundColor: '#1F2937', borderRadius: 12, borderWidth: 1, borderColor: '#374151', padding: 14, marginBottom: 16 },
-  panelTitle: { color: '#fff', fontSize: 18, fontWeight: '900', marginBottom: 12 },
+  panel: { backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.chip, padding: 14, marginBottom: 16 },
+  panelTitle: { color: theme.text, fontSize: 18, fontWeight: '900', marginBottom: 12 },
   label: { color: '#A7F3D0', fontSize: 12, fontWeight: '800', marginBottom: 7, marginTop: 8 },
   choiceRow: { marginBottom: 8 },
   inlineChoices: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  choice: { backgroundColor: '#374151', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8, marginBottom: 8 },
-  smallChoice: { backgroundColor: '#374151', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, marginRight: 8 },
-  choiceActive: { backgroundColor: '#10B981' },
-  choiceText: { color: '#D1D5DB', fontSize: 12, fontWeight: '700' },
-  choiceTextActive: { color: '#fff' },
-  input: { backgroundColor: '#111827', borderColor: '#374151', borderWidth: 1, borderRadius: 10, color: '#fff', paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  choice: { backgroundColor: theme.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8, marginBottom: 8 },
+  smallChoice: { backgroundColor: theme.chip, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, marginRight: 8 },
+  choiceActive: { backgroundColor: theme.primary },
+  choiceText: { color: theme.subtleText, fontSize: 12, fontWeight: '700' },
+  choiceTextActive: { color: theme.onPrimary },
+  input: { backgroundColor: theme.background, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, color: theme.text, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   textarea: { minHeight: 92, textAlignVertical: 'top' },
   textareaSmall: { minHeight: 70, textAlignVertical: 'top' },
-  saveButton: { backgroundColor: '#10B981', borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 14 },
-  saveText: { color: '#fff', fontWeight: '900' },
+  saveButton: { backgroundColor: theme.primary, borderRadius: 10, paddingVertical: 13, alignItems: 'center', marginTop: 14 },
+  saveText: { color: theme.onPrimary, fontWeight: '900' },
   disabled: { opacity: 0.6 },
   list: { gap: 12 },
-  empty: { alignItems: 'center', padding: 26, backgroundColor: '#1F2937', borderRadius: 12, borderWidth: 1, borderColor: '#374151' },
-  emptyTitle: { color: '#fff', fontSize: 16, fontWeight: '900', marginTop: 10 },
-  emptyText: { color: '#9CA3AF', textAlign: 'center', marginTop: 6, lineHeight: 18 },
-  card: { backgroundColor: '#1F2937', borderRadius: 12, borderWidth: 1, borderColor: '#374151', padding: 14 },
+  empty: { alignItems: 'center', padding: 26, backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.chip },
+  emptyTitle: { color: theme.text, fontSize: 16, fontWeight: '900', marginTop: 10 },
+  emptyText: { color: theme.muted, textAlign: 'center', marginTop: 6, lineHeight: 18 },
+  card: { backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.chip, padding: 14 },
   cardTop: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  cardTitle: { color: '#fff', fontWeight: '900', fontSize: 15, lineHeight: 20 },
-  muted: { color: '#9CA3AF', fontSize: 12, marginTop: 4 },
+  cardTitle: { color: theme.text, fontWeight: '900', fontSize: 15, lineHeight: 20 },
+  muted: { color: theme.muted, fontSize: 12, marginTop: 4 },
   badge: { color: '#93C5FD', backgroundColor: '#1E3A5F', borderRadius: 999, overflow: 'hidden', paddingHorizontal: 9, paddingVertical: 5, fontSize: 11, fontWeight: '900' },
   doneBadge: { color: '#D1FAE5', backgroundColor: '#065F46' },
-  notes: { color: '#D1D5DB', marginTop: 10, lineHeight: 18 },
+  notes: { color: theme.subtleText, marginTop: 10, lineHeight: 18 },
   statusRow: { marginTop: 12 },
-  deleteChip: { backgroundColor: '#4C1D1D', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, marginRight: 8 },
-  deleteText: { color: '#FCA5A5', fontSize: 12, fontWeight: '900' },
+  deleteChip: { backgroundColor: theme.mode === 'light' ? '#FEE2E2' : '#3B1F26', borderColor: theme.mode === 'light' ? '#FCA5A5' : '#7F1D1D', borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, marginRight: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  deleteText: { color: theme.mode === 'light' ? '#B91C1C' : theme.dangerText, fontSize: 12, fontWeight: '900' },
 });

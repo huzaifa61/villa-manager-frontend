@@ -6,8 +6,12 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser } from '../../store/slices/authSlice';
 import { AppDispatch, RootState } from '../../store';
+import { useAppPreferences } from '../../context/AppPreferences';
+import logo from '../../../assets/logo.png';
 
 export default function RegisterScreen({ navigation }: any) {
+  const { theme, t, textAlign, rowDirection, direction } = useAppPreferences();
+  const s = makeStyles(theme, textAlign, rowDirection, direction);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,11 +21,11 @@ export default function RegisterScreen({ navigation }: any) {
 
   const onRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password) {
-      Alert.alert('Error', 'Enter your name, email, and password');
+      Alert.alert(t('error'), t('enterRegisterFields'));
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      Alert.alert(t('error'), t('passwordMin'));
       return;
     }
     const result = await dispatch(registerUser({
@@ -31,7 +35,7 @@ export default function RegisterScreen({ navigation }: any) {
       phoneNumber: phoneNumber.trim(),
     }));
     if (registerUser.rejected.match(result)) {
-      Alert.alert('Registration Failed', result.payload as string);
+      Alert.alert(t('registrationFailed'), result.payload as string);
     }
   };
 
@@ -39,28 +43,28 @@ export default function RegisterScreen({ navigation }: any) {
     <SafeAreaView style={s.container}>
       <KeyboardAvoidingView style={s.inner} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={s.card}>
-          <Image source={require('../../../assets/logo.png')} style={s.logo} resizeMode="contain" />
+          <Image source={logo} style={s.logo} resizeMode="contain" />
           <Text style={s.title}>Villa Manager Pro</Text>
-          <Text style={s.sub}>Create your management account</Text>
+          <Text style={s.sub}>{t('createManagementAccount')}</Text>
 
-          <Text style={s.label}>Full Name</Text>
-          <TextInput style={s.input} placeholder="Your full name" placeholderTextColor="#6B7280" value={fullName} onChangeText={setFullName} />
-          <Text style={s.label}>Email</Text>
-          <TextInput style={s.input} placeholder="you@example.com" placeholderTextColor="#6B7280" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-          <Text style={s.label}>Password (min 6 chars)</Text>
-          <TextInput style={s.input} placeholder="Choose a password" placeholderTextColor="#6B7280" value={password} onChangeText={setPassword} secureTextEntry />
-          <Text style={s.label}>Phone</Text>
-          <TextInput style={s.input} placeholder="Optional" placeholderTextColor="#6B7280" value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
+          <Text style={s.label}>{t('fullName')}</Text>
+          <TextInput style={s.input} placeholder={t('yourFullName')} placeholderTextColor={theme.muted} value={fullName} onChangeText={setFullName} />
+          <Text style={s.label}>{t('email')}</Text>
+          <TextInput style={s.input} placeholder="you@example.com" placeholderTextColor={theme.muted} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+          <Text style={s.label}>{t('passwordMinLabel')}</Text>
+          <TextInput style={s.input} placeholder={t('choosePassword')} placeholderTextColor={theme.muted} value={password} onChangeText={setPassword} secureTextEntry />
+          <Text style={s.label}>{t('phone')}</Text>
+          <TextInput style={s.input} placeholder={t('optional')} placeholderTextColor={theme.muted} value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" />
 
           {error ? <Text style={s.err}>{error}</Text> : null}
           <TouchableOpacity style={[s.btn, isLoading && s.btnDim]} onPress={onRegister} disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="#052E1B" /> : <Text style={s.btnTxt}>Create Account</Text>}
+            {isLoading ? <ActivityIndicator color={theme.onPrimary} /> : <Text style={s.btnTxt}>{t('createAccount')}</Text>}
           </TouchableOpacity>
 
           <View style={s.switchRow}>
-            <Text style={s.switchText}>Have an account? </Text>
+            <Text style={s.switchText}>{t('haveAccount')} </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={s.switchLink}>Sign in</Text>
+              <Text style={s.switchLink}>{t('signIn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -69,20 +73,20 @@ export default function RegisterScreen({ navigation }: any) {
   );
 }
 
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B1413' },
+const makeStyles = (theme: any, textAlign: 'right' | 'left', rowDirection: 'row-reverse' | 'row', direction: 'rtl' | 'ltr') => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   inner: { flex: 1, justifyContent: 'center', padding: 22 },
-  card: { backgroundColor: '#102629', borderRadius: 18, padding: 24, borderWidth: 1, borderColor: '#1F3F46' },
+  card: { backgroundColor: theme.card, borderRadius: 18, padding: 24, borderWidth: 1, borderColor: theme.border },
   logo: { width: 156, height: 156, alignSelf: 'center', marginBottom: 14, borderRadius: 24 },
-  title: { color: '#F9FAFB', fontSize: 28, fontWeight: '900', textAlign: 'center' },
-  sub: { color: '#A7BDB4', textAlign: 'center', marginTop: 6, marginBottom: 22, fontSize: 15 },
-  label: { color: '#A7BDB4', fontSize: 13, fontWeight: '800', marginBottom: 6 },
-  input: { backgroundColor: '#0B1719', borderRadius: 10, borderWidth: 1, borderColor: '#26434A', padding: 14, color: '#fff', fontSize: 15, marginBottom: 14 },
-  btn: { backgroundColor: '#4ADE80', borderRadius: 12, padding: 15, alignItems: 'center', marginTop: 4 },
+  title: { color: theme.text, fontSize: 28, fontWeight: '900', textAlign: 'center' },
+  sub: { color: theme.muted, textAlign: 'center', marginTop: 6, marginBottom: 22, fontSize: 15, writingDirection: direction },
+  label: { color: theme.label, fontSize: 13, fontWeight: '800', marginBottom: 6, textAlign, writingDirection: direction },
+  input: { backgroundColor: theme.input, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 14, color: theme.text, fontSize: 15, marginBottom: 14, textAlign, writingDirection: direction },
+  btn: { backgroundColor: theme.primary, borderRadius: 12, padding: 15, alignItems: 'center', marginTop: 4 },
   btnDim: { opacity: 0.65 },
-  btnTxt: { color: '#052E1B', fontSize: 16, fontWeight: '900' },
-  err: { color: '#FCA5A5', marginBottom: 10, textAlign: 'center' },
-  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  switchText: { color: '#A7BDB4', fontSize: 15 },
-  switchLink: { color: '#86EFAC', fontSize: 15, fontWeight: '900', textDecorationLine: 'underline' },
+  btnTxt: { color: theme.onPrimary, fontSize: 16, fontWeight: '900' },
+  err: { color: theme.danger, marginBottom: 10, textAlign: 'center' },
+  switchRow: { flexDirection: rowDirection, justifyContent: 'center', marginTop: 20 },
+  switchText: { color: theme.muted, fontSize: 15, writingDirection: direction },
+  switchLink: { color: theme.primary, fontSize: 15, fontWeight: '900', textDecorationLine: 'underline' },
 });
