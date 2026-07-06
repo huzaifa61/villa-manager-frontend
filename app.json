@@ -23,8 +23,6 @@
     "ios": {
       "bundleIdentifier": "com.villamanager.pro"
     },
-    "plugins": [
-      "expo-sharing"
-    ]
+    "plugins": []
   }
 }

@@ -118,7 +118,7 @@ const AppTabs = () => {
 };
 
 const shouldOpenInvite = () => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined' || !window.location) return false;
   return window.location.pathname.includes('accept-invite') || window.location.search.includes('token=');
 };
 

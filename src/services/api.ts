@@ -3,8 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
 const getBaseUrl = () => {
-  if (Platform.OS === 'android') return 'http://10.0.2.2:8080/api';
-  return 'http://localhost:8080/api';
+  return `https://villa-manager-backend-production.up.railway.app/api`;
 };
 
 const api = axios.create({

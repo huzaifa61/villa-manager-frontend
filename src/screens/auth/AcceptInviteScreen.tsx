@@ -8,6 +8,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 
 const readTokenFromUrl = () => {
   if (typeof window === 'undefined') return '';
+  if (typeof window === 'undefined' || !window.location) return '';
   return new URLSearchParams(window.location.search).get('token') || '';
 };
 
