@@ -26,9 +26,22 @@ api.interceptors.response.use(
 
 const unwrap = (data: any) => data?.data ?? data;
 
+const getCsv = async (url: string) => {
+  const { data } = await api.get(url, {
+    responseType: 'text',
+    headers: { Accept: 'text/csv' },
+    transformResponse: [(value) => value],
+  });
+  return data;
+};
+
 export const apiService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post('/v1/auth/login', { email, password });
+    return unwrap(data);
+  },
+  register: async (body: { fullName: string; email: string; password: string; phoneNumber?: string }) => {
+    const { data } = await api.post('/v1/auth/register', body);
     return unwrap(data);
   },
   getApartments: async (villaId: number) => {
@@ -47,6 +60,7 @@ export const apiService = {
     const { data } = await api.delete('/v1/villas/' + villaId + '/apartments/' + apartmentId);
     return unwrap(data);
   },
+  exportApartmentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/apartments/export'),
   getPayments: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/payments');
     return unwrap(data);
@@ -63,6 +77,7 @@ export const apiService = {
     const { data } = await api.delete('/v1/villas/' + villaId + '/payments/' + paymentId);
     return unwrap(data);
   },
+  exportPaymentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/payments/export'),
   getExpenses: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/expenses');
     return unwrap(data);
@@ -77,6 +92,27 @@ export const apiService = {
   },
   deleteExpense: async (villaId: number, expenseId: number) => {
     const { data } = await api.delete('/v1/villas/' + villaId + '/expenses/' + expenseId);
+    return unwrap(data);
+  },
+  exportExpensesCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/expenses/export'),
+  getExpenseTemplates: async (villaId: number) => {
+    const { data } = await api.get('/v1/villas/' + villaId + '/expense-templates');
+    return unwrap(data);
+  },
+  createExpenseTemplate: async (villaId: number, body: any) => {
+    const { data } = await api.post('/v1/villas/' + villaId + '/expense-templates', body);
+    return unwrap(data);
+  },
+  updateExpenseTemplate: async (villaId: number, templateId: number, body: any) => {
+    const { data } = await api.put('/v1/villas/' + villaId + '/expense-templates/' + templateId, body);
+    return unwrap(data);
+  },
+  deleteExpenseTemplate: async (villaId: number, templateId: number) => {
+    const { data } = await api.delete('/v1/villas/' + villaId + '/expense-templates/' + templateId);
+    return unwrap(data);
+  },
+  runDueExpenseTemplates: async (villaId: number) => {
+    const { data } = await api.post('/v1/villas/' + villaId + '/expense-templates/run-due');
     return unwrap(data);
   },
   getServiceRequests: async (villaId: number) => {

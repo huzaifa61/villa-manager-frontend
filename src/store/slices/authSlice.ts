@@ -28,6 +28,19 @@ export const loginUser = createAsyncThunk('auth/login', async (
   }
 });
 
+export const registerUser = createAsyncThunk('auth/register', async (
+  { fullName, email, password, phoneNumber }: { fullName: string; email: string; password: string; phoneNumber?: string }, { rejectWithValue }
+) => {
+  try {
+    const res = await apiService.register({ fullName, email, password, phoneNumber });
+    await AsyncStorage.setItem('accessToken', res.accessToken);
+    await AsyncStorage.setItem('user', JSON.stringify(res.user));
+    return res;
+  } catch (e: any) {
+    return rejectWithValue(e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Registration failed');
+  }
+});
+
 export const checkAuth = createAsyncThunk('auth/check', async (_, { rejectWithValue }) => {
   try {
     const token = await AsyncStorage.getItem('accessToken');
@@ -55,6 +68,14 @@ const authSlice = createSlice({
         s.accessToken = a.payload.accessToken; s.user = a.payload.user;
       })
       .addCase(loginUser.rejected, (s, a) => {
+        s.isLoading = false; s.error = a.payload as string;
+      })
+      .addCase(registerUser.pending, (s) => { s.isLoading = true; s.error = null; })
+      .addCase(registerUser.fulfilled, (s, a) => {
+        s.isLoading = false; s.isAuthenticated = true;
+        s.accessToken = a.payload.accessToken; s.user = a.payload.user;
+      })
+      .addCase(registerUser.rejected, (s, a) => {
         s.isLoading = false; s.error = a.payload as string;
       })
       .addCase(checkAuth.pending, (s) => { s.isLoading = true; })

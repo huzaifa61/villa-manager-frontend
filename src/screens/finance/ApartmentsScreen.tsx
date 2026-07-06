@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../../services/api';
+import { exportCsv, exportCsvContent } from '../../utils/csv';
 
 interface Apartment {
   id: number;
@@ -16,6 +17,9 @@ interface Apartment {
   currentBalance: number;
   status: string;
   apartmentType?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  notes?: string;
 }
 
 interface Expense {
@@ -65,6 +69,7 @@ const ApartmentsScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editing, setEditing] = useState<Apartment | null>(null);
   const [statementApartment, setStatementApartment] = useState<Apartment | null>(null);
+  const [timelineApartment, setTimelineApartment] = useState<Apartment | null>(null);
   const [form, setForm] = useState(emptyForm);
 
   const fetchData = async () => {
@@ -197,6 +202,59 @@ const ApartmentsScreen = () => {
     return { allocated, paid, balance, rows };
   }, [apartments.length, expenses, payments, statementApartment]);
 
+  const timeline = useMemo(() => {
+    if (!timelineApartment) return [];
+    const affectedExpenses = expenses
+      .filter((e) => !e.apartmentId || e.apartmentId === timelineApartment.id)
+      .map((e) => ({
+        id: 'expense-' + e.id,
+        date: e.expenseDate || '',
+        title: 'Expense allocation',
+        detail: (e.description || 'Expense') + ' - ' + money(e.apartmentId ? e.amount : Number(e.amount || 0) / Math.max(apartments.length, 1)),
+        tone: 'expense',
+      }));
+    const apartmentPayments = payments
+      .filter((p) => p.apartmentId === timelineApartment.id)
+      .map((p) => ({
+        id: 'payment-' + p.id,
+        date: p.paymentDate || '',
+        title: 'Payment recorded',
+        detail: money(p.amount) + ' - ' + (p.paymentMethod || 'Payment') + (p.notes ? ' - ' + p.notes : ''),
+        tone: 'payment',
+      }));
+    const created = [{
+      id: 'created',
+      date: timelineApartment.createdAt || timelineApartment.updatedAt || '',
+      title: 'Apartment created',
+      detail: 'Apartment ' + timelineApartment.apartmentNumber,
+      tone: 'created',
+    }];
+    return [...affectedExpenses, ...apartmentPayments, ...created]
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }, [apartments.length, expenses, payments, timelineApartment]);
+
+  const exportApartments = async () => {
+    try {
+      const csv = await apiService.exportApartmentsCsv(VILLA_ID);
+      await exportCsvContent('apartments.csv', csv);
+    } catch {
+      await exportCsv('apartments.csv',
+        ['ID', 'Apartment', 'Owner', 'Tenant', 'Phone', 'Status', 'Opening Balance', 'Current Balance', 'Type', 'Created At'],
+        filteredApartments.map((a) => [
+          a.id,
+          a.apartmentNumber,
+          a.ownerName,
+          a.tenantName,
+          a.phoneNumber,
+          a.status,
+          a.openingBalance,
+          a.currentBalance,
+          a.apartmentType,
+          a.createdAt,
+        ]));
+    }
+  };
+
   const renderItem = ({ item }: { item: Apartment }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -215,6 +273,7 @@ const ApartmentsScreen = () => {
       <View style={styles.actions}>
         <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity>
         <TouchableOpacity style={styles.smallBtn} onPress={() => setStatementApartment(item)}><Text style={styles.smallBtnText}>Statement</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => setTimelineApartment(item)}><Ionicons name="time-outline" size={17} color="#D1FAE5" /></TouchableOpacity>
         <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
       </View>
     </View>
@@ -224,9 +283,15 @@ const ApartmentsScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Apartments ({filteredApartments.length})</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportApartments}>
+            <Ionicons name="download-outline" size={17} color="#E5E7EB" />
+            <Text style={styles.exportText}>CSV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>
@@ -315,6 +380,38 @@ const ApartmentsScreen = () => {
           </View>
         </View>
       </Modal>
+
+      <Modal visible={!!timelineApartment} animationType="slide" transparent>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.statementHeader}>
+                <Text style={styles.modalTitle}>Apartment Timeline</Text>
+                <TouchableOpacity onPress={() => setTimelineApartment(null)}><Ionicons name="close" size={26} color="#9CA3AF" /></TouchableOpacity>
+              </View>
+              <Text style={styles.statementTitle}>Apartment {timelineApartment?.apartmentNumber}</Text>
+              <View style={styles.notesBox}>
+                <Text style={styles.notesLabel}>Internal notes:</Text>
+                <Text style={styles.notesText}>{timelineApartment?.notes || 'No notes saved for this apartment.'}</Text>
+              </View>
+              <View style={styles.timelineWrap}>
+                {timeline.map((event) => (
+                  <View key={event.id} style={styles.timelineRow}>
+                    <View style={styles.timelineRail}>
+                      <View style={[styles.timelineDot, event.tone === 'payment' && styles.paymentDot, event.tone === 'created' && styles.createdDot]} />
+                    </View>
+                    <View style={styles.timelineCard}>
+                      <Text style={styles.timelineDate}>{event.date || 'No date'}</Text>
+                      <Text style={styles.timelineTitle}>{event.title}</Text>
+                      <Text style={styles.timelineDetail}>{event.detail}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -323,6 +420,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#111827' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1F2937' },
   title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exportBtn: { backgroundColor: '#374151', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  exportText: { color: '#E5E7EB', fontSize: 12, fontWeight: '800' },
   addBtn: { backgroundColor: '#10B981', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 0, backgroundColor: '#1F2937', borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#374151' },
   search: { flex: 1, color: '#fff', paddingVertical: 12, fontSize: 14 },
@@ -339,6 +439,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   smallBtn: { backgroundColor: '#374151', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   smallBtnText: { color: '#E5E7EB', fontSize: 12, fontWeight: '700' },
+  iconBtn: { backgroundColor: '#064E3B', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   deleteBtn: { backgroundColor: '#3B1F26', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   deleteText: { color: '#FCA5A5', fontSize: 12, fontWeight: '700' },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
@@ -369,6 +470,19 @@ const styles = StyleSheet.create({
   statementDate: { color: '#6B7280', fontSize: 11, marginTop: 2 },
   debit: { color: '#EF4444', fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
   credit: { color: '#10B981', fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
+  notesBox: { borderWidth: 1, borderColor: '#065F46', borderStyle: 'dashed', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: '#12342F' },
+  notesLabel: { color: '#D1FAE5', fontWeight: '900', marginBottom: 4 },
+  notesText: { color: '#D1D5DB', lineHeight: 19 },
+  timelineWrap: { borderLeftWidth: 2, borderLeftColor: '#166534', marginLeft: 10, paddingLeft: 18 },
+  timelineRow: { flexDirection: 'row', marginBottom: 14, marginLeft: -29 },
+  timelineRail: { width: 22, alignItems: 'center', paddingTop: 18 },
+  timelineDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FCA5A5', borderWidth: 2, borderColor: '#1F2937' },
+  paymentDot: { backgroundColor: '#86EFAC' },
+  createdDot: { backgroundColor: '#93C5FD' },
+  timelineCard: { flex: 1, backgroundColor: '#15363D', borderWidth: 1, borderColor: '#27515A', borderRadius: 12, padding: 12 },
+  timelineDate: { color: '#A7F3D0', fontSize: 12, marginBottom: 4 },
+  timelineTitle: { color: '#fff', fontSize: 14, fontWeight: '900', marginBottom: 4 },
+  timelineDetail: { color: '#D1D5DB', fontSize: 13, lineHeight: 18 },
 });
 
 export default ApartmentsScreen;

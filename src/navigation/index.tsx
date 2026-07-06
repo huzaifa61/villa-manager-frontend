@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 import DashboardScreen from '../screens/finance/DashboardScreen';
 import ApartmentsScreen from '../screens/finance/ApartmentsScreen';
 import PaymentsScreen from '../screens/finance/PaymentsScreen';
@@ -89,6 +90,7 @@ const AppTabs = () => (
 const AuthStack = () => (
   <Stack.Navigator id="AuthStack" screenOptions={{ headerShown: false }}>
     <Stack.Screen name="Login" component={LoginScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>
 );
 

@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../../store/slices/authSlice';
 import { AppDispatch, RootState } from '../../store';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('gm@villa.com');
   const [password, setPassword] = useState('password123');
   const dispatch = useDispatch<AppDispatch>();
@@ -29,6 +29,12 @@ export default function LoginScreen() {
           <TouchableOpacity style={[s.btn, isLoading && s.btnDim]} onPress={onLogin} disabled={isLoading}>
             {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={s.btnTxt}>Login</Text>}
           </TouchableOpacity>
+          <View style={s.switchRow}>
+            <Text style={s.switchText}>Need an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+              <Text style={s.switchLink}>Register</Text>
+            </TouchableOpacity>
+          </View>
           <View style={s.hint}>
             <Text style={s.hintTitle}>Demo Credentials</Text>
             <Text style={s.hintTxt}>Email: gm@villa.com</Text>
@@ -52,6 +58,9 @@ const s = StyleSheet.create({
   btnDim: { opacity: 0.6 },
   btnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
   err: { color: '#EF4444', marginBottom: 10, textAlign: 'center' },
+  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 16 },
+  switchText: { color: '#9CA3AF', fontSize: 14 },
+  switchLink: { color: '#86EFAC', fontSize: 14, fontWeight: '800', textDecorationLine: 'underline' },
   hint: { marginTop: 20, padding: 12, backgroundColor: '#111827', borderRadius: 8, borderLeftWidth: 3, borderLeftColor: '#10B981' },
   hintTitle: { color: '#10B981', fontWeight: '600', marginBottom: 4 },
   hintTxt: { color: '#9CA3AF', fontSize: 13 },

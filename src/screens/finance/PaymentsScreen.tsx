@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { apiService } from '../../services/api';
+import { exportCsv, exportCsvContent } from '../../utils/csv';
 
 interface Payment {
   id: number;
@@ -128,6 +129,27 @@ const PaymentsScreen = () => {
     ]);
   };
 
+  const exportPayments = async () => {
+    try {
+      const csv = await apiService.exportPaymentsCsv(VILLA_ID);
+      await exportCsvContent('payments.csv', csv);
+    } catch {
+      await exportCsv('payments.csv',
+        ['ID', 'Apartment ID', 'Apartment', 'Amount', 'Payment Date', 'Method', 'Reference', 'Status', 'Notes'],
+        filteredPayments.map((p) => [
+          p.id,
+          p.apartmentId,
+          p.apartmentNumber,
+          p.amount,
+          p.paymentDate,
+          p.paymentMethod,
+          p.referenceNumber,
+          p.status,
+          p.notes,
+        ]));
+    }
+  };
+
   const renderItem = ({ item }: { item: Payment }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -158,9 +180,15 @@ const PaymentsScreen = () => {
           <Text style={styles.title}>Payments ({filteredPayments.length})</Text>
           <Text style={styles.total}>Collected: {money(totalPayments)}</Text>
         </View>
-        <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
-          <Ionicons name="add" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportPayments}>
+            <Ionicons name="download-outline" size={17} color="#E5E7EB" />
+            <Text style={styles.exportText}>CSV</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
+            <Ionicons name="add" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>
@@ -226,6 +254,9 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#1F2937' },
   title: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   total: { color: '#10B981', fontSize: 13, marginTop: 2, fontWeight: '700' },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  exportBtn: { backgroundColor: '#374151', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  exportText: { color: '#E5E7EB', fontSize: 12, fontWeight: '800' },
   addBtn: { backgroundColor: '#10B981', borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, margin: 16, marginBottom: 0, backgroundColor: '#1F2937', borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#374151' },
   search: { flex: 1, color: '#fff', paddingVertical: 12, fontSize: 14 },
