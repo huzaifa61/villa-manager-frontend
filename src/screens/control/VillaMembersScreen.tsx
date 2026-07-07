@@ -50,14 +50,16 @@ const roleGuides = [
 
 export default function VillaMembersScreen() {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
+  const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
   const [members, setMembers] = useState<any[]>([]);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<string>(appRoles.VIEWER);
   const [loading, setLoading] = useState(true);
+  const [inviting, setInviting] = useState(false);
 
   const loadMembers = useCallback(async () => {
     setLoading(true);
@@ -77,6 +79,7 @@ export default function VillaMembersScreen() {
   const sortedMembers = useMemo(() => [...members].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))), [members]);
 
   const inviteMember = async () => {
+    if (inviting) return;
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
       Alert.alert('Email required', 'Please enter a valid member email.');
@@ -90,12 +93,13 @@ export default function VillaMembersScreen() {
       Alert.alert('Role not allowed', 'Your account cannot invite that role.');
       return;
     }
+    setInviting(true);
     try {
       await apiService.inviteUser({
         email: cleanEmail,
         fullName: fullName.trim() || cleanEmail,
         role,
-        villaId: user?.villaId || VILLA_ID,
+        villaId: villaId,
       });
       setEmail('');
       setFullName('');
@@ -104,6 +108,8 @@ export default function VillaMembersScreen() {
       Alert.alert('Invitation sent', 'The invite email was sent or logged by the backend mail service.');
     } catch (e: any) {
       Alert.alert('Invite failed', e?.response?.data?.message || e?.message || 'Could not send invitation.');
+    } finally {
+      setInviting(false);
     }
   };
 
@@ -123,7 +129,7 @@ export default function VillaMembersScreen() {
 
   const updateRole = async (member: any, nextRole: string) => {
     try {
-      await apiService.updateUser(member.id, { role: nextRole, villaId: member.villaId || user?.villaId || VILLA_ID });
+      await apiService.updateUser(member.id, { role: nextRole, villaId: member.villaId || villaId });
       await loadMembers();
     } catch (e: any) {
       Alert.alert('Update failed', e?.response?.data?.message || 'Could not update this user.');
@@ -156,9 +162,13 @@ export default function VillaMembersScreen() {
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity style={styles.inviteButton} onPress={inviteMember} disabled={!permissions.canManageUsers}>
-            <Ionicons name="send-outline" size={17} color={theme.onPrimary} />
-            <Text style={styles.inviteText}>Send Invitation</Text>
+          <TouchableOpacity style={[styles.inviteButton, (inviting || !permissions.canManageUsers) && styles.inviteButtonDisabled]} onPress={inviteMember} disabled={inviting || !permissions.canManageUsers}>
+            {inviting ? (
+              <ActivityIndicator size="small" color={theme.onPrimary} />
+            ) : (
+              <Ionicons name="send-outline" size={17} color={theme.onPrimary} />
+            )}
+            <Text style={styles.inviteText}>{inviting ? 'Sending...' : 'Send Invitation'}</Text>
           </TouchableOpacity>
         </View>
 
@@ -231,6 +241,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   roleTextSmall: { color: theme.subtleText, fontSize: 11, fontWeight: '800' },
   roleTextActive: { color: theme.onPrimary },
   inviteButton: { backgroundColor: theme.primary, borderRadius: 10, minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 4 },
+  inviteButtonDisabled: { opacity: 0.6 },
   inviteText: { color: theme.onPrimary, fontWeight: '900' },
   empty: { alignItems: 'center', padding: 22, backgroundColor: theme.background, borderRadius: 10, borderWidth: 1, borderColor: theme.border },
   emptyText: { color: theme.muted, marginTop: 8, fontWeight: '700' },

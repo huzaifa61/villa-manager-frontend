@@ -24,15 +24,16 @@ interface Payment {
 }
 
 const VILLA_ID = 1;
+const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', 'Other'];
 const STATUS_COLORS: Record<string, string> = { COMPLETED: '#10B981', PAID: '#10B981', PENDING: '#F59E0B', OVERDUE: '#EF4444', PARTIAL: '#3B82F6' };
-const emptyForm = { apartmentId: '', amount: '', paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'CASH', referenceNumber: '', notes: '', status: 'COMPLETED' };
+const emptyForm = { apartmentId: '', amount: '', paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', referenceNumber: '', notes: '', status: 'COMPLETED' };
 const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 const PaymentsScreen = () => {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
-  const villaId = user?.villaId || VILLA_ID;
+  const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
@@ -42,6 +43,8 @@ const PaymentsScreen = () => {
   const [editing, setEditing] = useState<Payment | null>(null);
   const [query, setQuery] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [showMethodDD, setShowMethodDD] = useState(false);
+  const [showAptDD, setShowAptDD] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -218,38 +221,70 @@ const PaymentsScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>{editing ? 'Edit Payment' : 'Record Payment'}</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{editing ? 'Edit Payment' : 'Add Payment'}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={28} color={theme.muted} /></TouchableOpacity>
+              </View>
 
-              <Text style={styles.label}>Apartment</Text>
-              <View style={styles.pickerRow}>
-                {apartments.map((a) => (
-                  <TouchableOpacity key={a.id} disabled={!!editing} style={[styles.pickerBtn, form.apartmentId === String(a.id) && styles.pickerBtnActive, editing && { opacity: form.apartmentId === String(a.id) ? 1 : 0.35 }]} onPress={() => setForm({ ...form, apartmentId: String(a.id) })}>
-                    <Text style={[styles.pickerText, form.apartmentId === String(a.id) && { color: theme.onPrimary }]}>Apt {a.apartmentNumber}</Text>
+              {!editing && <View style={styles.infoBanner}>
+                <Text style={styles.infoText}>Choose how this collected payment should be credited across apartments.</Text>
+              </View>}
+
+              {/* Date + Amount */}
+              <View style={styles.twoCol}>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Date *</Text>
+                  <TextInput style={styles.input} value={form.paymentDate} onChangeText={(v) => setForm({ ...form, paymentDate: v })} placeholderTextColor="#9CA3AF" />
+                </View>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Amount (EGP) *</Text>
+                  <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
+                </View>
+              </View>
+
+              {/* Split Type + Apartment */}
+              <View style={styles.twoCol}>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Split Type *</Text>
+                  <View style={styles.dropdownBtn}>
+                    <Text style={styles.dropdownBtnText}>Single apartment</Text>
+                  </View>
+                </View>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Apartment *</Text>
+                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => !editing && setShowAptDD(!showAptDD)}>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>
+                      {apartments.find(a => String(a.id) === form.apartmentId) ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select'}
+                    </Text>
+                    {!editing && <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />}
                   </TouchableOpacity>
-                ))}
+                  {showAptDD && !editing && <View style={styles.dropdownMenu}>
+                    {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
+                      <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                    </TouchableOpacity>)}
+                  </View>}
+                </View>
               </View>
 
-              <TextInput style={styles.input} placeholder="Amount (EGP) *" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
-              <TextInput style={styles.input} placeholder="Payment date (YYYY-MM-DD)" placeholderTextColor="#9CA3AF" value={form.paymentDate} onChangeText={(v) => setForm({ ...form, paymentDate: v })} />
-              <TextInput style={styles.input} placeholder="Method" placeholderTextColor="#9CA3AF" value={form.paymentMethod} onChangeText={(v) => setForm({ ...form, paymentMethod: v })} />
-              <TextInput style={styles.input} placeholder="Reference number" placeholderTextColor="#9CA3AF" value={form.referenceNumber} onChangeText={(v) => setForm({ ...form, referenceNumber: v })} />
-              <TextInput style={styles.input} placeholder="Notes" placeholderTextColor="#9CA3AF" value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} />
+              {/* Method */}
+              <Text style={styles.label}>Method</Text>
+              <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowMethodDD(!showMethodDD)}>
+                <Text style={styles.dropdownBtnText}>{form.paymentMethod}</Text>
+                <Ionicons name={showMethodDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
+              </TouchableOpacity>
+              {showMethodDD && <View style={styles.dropdownMenu}>
+                {PAYMENT_METHODS.map((m) => <TouchableOpacity key={m} style={styles.dropdownItem} onPress={() => { setForm({ ...form, paymentMethod: m }); setShowMethodDD(false); }}>
+                  <Text style={[styles.dropdownItemText, form.paymentMethod === m && { color: theme.primary, fontWeight: '900' }]}>{m}</Text>
+                </TouchableOpacity>)}
+              </View>}
 
-              <Text style={styles.label}>Status</Text>
-              <View style={styles.statusRow}>
-                {['COMPLETED', 'PENDING', 'OVERDUE', 'PARTIAL'].map((s) => (
-                  <TouchableOpacity key={s} style={[styles.statusBtn, form.status === s && { backgroundColor: STATUS_COLORS[s] }]} onPress={() => setForm({ ...form, status: s })}>
-                    <Text style={[styles.statusBtnText, form.status === s && { color: theme.onPrimary }]}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {/* Notes */}
+              <Text style={styles.label}>Notes</Text>
+              <TextInput style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]} placeholder="Optional notes..." placeholderTextColor="#9CA3AF" value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} multiline />
 
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{editing ? 'Save' : 'Record'}</Text>}
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>Save</Text>}
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -288,19 +323,19 @@ const makeStyles = (theme: any) => StyleSheet.create({
   addFirstText: { color: theme.text, fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%' },
-  modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
-  label: { color: theme.muted, fontSize: 13, marginBottom: 8, marginTop: 4, fontWeight: '700' },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
+  infoBanner: { backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 16 },
+  infoText: { color: '#3B82F6', fontSize: 13 },
+  label: { color: theme.muted, fontSize: 13, marginBottom: 6, marginTop: 4, fontWeight: '700' },
   input: { backgroundColor: theme.chip, borderRadius: 8, padding: 12, color: theme.text, marginBottom: 12, fontSize: 15 },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  pickerBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.chip },
-  pickerBtnActive: { backgroundColor: theme.primary },
-  pickerText: { color: theme.muted, fontSize: 13, fontWeight: '600' },
-  statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  statusBtn: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: theme.chip, alignItems: 'center' },
-  statusBtnText: { color: theme.muted, fontSize: 12, fontWeight: '600' },
-  modalActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
-  cancelBtn: { flex: 1, backgroundColor: theme.chip, borderRadius: 8, padding: 14, alignItems: 'center' },
-  cancelText: { color: theme.muted, fontWeight: '600' },
+  twoCol: { flexDirection: 'row', gap: 10 },
+  col: { flex: 1 },
+  dropdownBtn: { backgroundColor: theme.chip, borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: theme.border },
+  dropdownBtnText: { color: theme.text, fontSize: 13, flex: 1, fontWeight: '600' },
+  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginBottom: 8, maxHeight: 200 },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
+  dropdownItemText: { color: theme.text, fontSize: 13 },
   saveBtn: { flex: 1, backgroundColor: theme.primary, borderRadius: 8, padding: 14, alignItems: 'center' },
   saveText: { color: theme.onPrimary, fontWeight: '600' },
 });

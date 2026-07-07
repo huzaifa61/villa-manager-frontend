@@ -2,8 +2,20 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const getBaseUrl = () => {
-  return `https://villa-manager-backend-production.up.railway.app/api`;
+// ─── API Configuration ───────────────────────────────────────────────────────
+// Priority: EXPO_PUBLIC_API_URL env var → platform-based local fallback
+const getBaseUrl = (): string => {
+  // If env var is set (set in .env or app.config.js), use it
+  const envUrl = (process.env as any).EXPO_PUBLIC_API_URL;
+  if (envUrl) return envUrl;
+
+  // Android emulator: 10.0.2.2 maps to host machine's localhost
+  // iOS simulator / web: localhost works fine
+  // Physical device: needs your machine's LAN IP e.g. http://192.168.x.x:8080/api
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:8080/api';
+  }
+  return 'http://localhost:8080/api';
 };
 
 const api = axios.create({
@@ -20,7 +32,15 @@ api.interceptors.request.use(async (config) => {
 
 api.interceptors.response.use(
   (r) => r,
-  (error) => Promise.reject(error)
+  async (error) => {
+    if (error?.response?.status === 401 || error?.response?.status === 403) {
+      // Token expired — clear storage and reload
+      await AsyncStorage.multiRemove(['accessToken', 'user', 'activeVillaId']);
+      // Force reload to go back to login
+      if (typeof window !== 'undefined') window.location.reload();
+    }
+    return Promise.reject(error);
+  }
 );
 
 const unwrap = (data: any) => data?.data ?? data;
@@ -188,6 +208,26 @@ export const apiService = {
   },
   resetVillaData: async (villaId: number) => {
     const { data } = await api.post('/v1/villas/' + villaId + '/reset-data');
+    return unwrap(data);
+  },
+  savePushToken: async (token: string) => {
+    const { data } = await api.post('/v1/users/push-token', { token });
+    return unwrap(data);
+  },
+  getNotifications: async () => {
+    const { data } = await api.get('/v1/notifications');
+    return unwrap(data);
+  },
+  getUnreadCount: async () => {
+    const { data } = await api.get('/v1/notifications/unread-count');
+    return unwrap(data);
+  },
+  markAllNotificationsRead: async () => {
+    const { data } = await api.post('/v1/notifications/mark-all-read');
+    return unwrap(data);
+  },
+  markNotificationRead: async (id: number) => {
+    const { data } = await api.post('/v1/notifications/' + id + '/read');
     return unwrap(data);
   },
 };

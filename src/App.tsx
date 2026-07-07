@@ -5,12 +5,22 @@ import { store, RootState, AppDispatch } from './store';
 import { Navigation } from './navigation';
 import { checkAuth } from './store/slices/authSlice';
 import { AppPreferencesProvider, useAppPreferences } from './context/AppPreferences';
+import { registerPushToken } from './utils/registerPushToken';
 
 const AppContent = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, isLoading } = useSelector((s: RootState) => s.auth);
   const { theme } = useAppPreferences();
+
   useEffect(() => { dispatch(checkAuth()); }, []);
+
+  // Register push token once user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      registerPushToken();
+    }
+  }, [isAuthenticated]);
+
   return (
     <>
       <StatusBar barStyle={theme.statusBar} backgroundColor={theme.header} />

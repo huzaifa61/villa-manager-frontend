@@ -4,7 +4,8 @@ import {
   Modal, TextInput, Alert, ActivityIndicator, SafeAreaView, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { incrementVillaNotification } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
 import { useAppPreferences } from '../../context/AppPreferences';
@@ -34,18 +35,31 @@ interface ExpenseTemplate {
   lastGeneratedForMonth?: string;
 }
 
-const VILLA_ID = 1;
-const CATEGORIES = ['Maintenance', 'Utilities', 'Cleaning', 'Security', 'Management', 'Other'];
-const CATEGORY_COLORS: Record<string, string> = { Maintenance: '#F59E0B', Utilities: '#3B82F6', Cleaning: '#10B981', Security: '#EF4444', Management: '#8B5CF6', Other: '#6B7280' };
-const emptyForm = { description: '', amount: '', category: 'Maintenance', apartmentId: '', date: new Date().toISOString().split('T')[0] };
+const CATEGORIES = [
+  'Porter Salary', 'Electricity', 'Water', 'Gas', 'Maintenance',
+  'Cleaning', 'Security', 'Management Fee', 'Insurance', 'Other',
+];
+const CATEGORY_COLORS: Record<string, string> = {
+  'Porter Salary': '#8B5CF6', 'Electricity': '#F59E0B', 'Water': '#3B82F6',
+  'Gas': '#F97316', 'Maintenance': '#EF4444', 'Cleaning': '#10B981',
+  'Security': '#DC2626', 'Management Fee': '#6366F1', 'Insurance': '#0EA5E9', 'Other': '#6B7280',
+};
+const SPLIT_TYPES = [
+  { key: 'ALL_EQUAL', label: 'All apartments — equal split' },
+  { key: 'SINGLE', label: 'Single apartment' },
+  { key: 'SELECTED_EQUAL', label: 'Selected apartments — equal split' },
+  { key: 'SELECTED_CUSTOM', label: 'Selected apartments — custom amounts' },
+];
+const emptyForm = { description: '', amount: '', category: 'Porter Salary', splitType: 'ALL_EQUAL', apartmentId: '', date: new Date().toISOString().split('T')[0] };
 const emptyTemplateForm = { templateName: '', description: '', amount: '', category: 'Maintenance', apartmentId: '', dayOfMonth: '1', isActive: true };
 const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 const ExpensesScreen = () => {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const dispatch = useDispatch();
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
-  const villaId = user?.villaId || VILLA_ID;
+  const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
@@ -59,6 +73,11 @@ const ExpensesScreen = () => {
   const [query, setQuery] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [templateForm, setTemplateForm] = useState(emptyTemplateForm);
+  const [selectedAptIds, setSelectedAptIds] = useState<number[]>([]);
+  const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({});
+  const [showCategoryDD, setShowCategoryDD] = useState(false);
+  const [showSplitDD, setShowSplitDD] = useState(false);
+  const [showAptDD, setShowAptDD] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -93,6 +112,8 @@ const ExpensesScreen = () => {
   const openAdd = () => {
     setEditing(null);
     setForm(emptyForm);
+    setSelectedAptIds([]);
+    setCustomAmounts({});
     setModalVisible(true);
   };
 
@@ -101,10 +122,13 @@ const ExpensesScreen = () => {
     setForm({
       description: expense.description || '',
       amount: String(expense.amount || ''),
-      category: expense.categoryName || 'Maintenance',
+      category: expense.categoryName || 'Porter Salary',
+      splitType: expense.apartmentId ? 'SINGLE' : 'ALL_EQUAL',
       apartmentId: expense.apartmentId ? String(expense.apartmentId) : '',
       date: expense.expenseDate || new Date().toISOString().split('T')[0],
     });
+    setSelectedAptIds([]);
+    setCustomAmounts({});
     setModalVisible(true);
   };
 
@@ -129,23 +153,36 @@ const ExpensesScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!form.description.trim() || !form.amount) {
-      Alert.alert('Error', 'Description and amount are required');
-      return;
+    if (!form.amount) { Alert.alert('Error', 'Amount is required'); return; }
+    if (form.splitType === 'SINGLE' && !form.apartmentId) { Alert.alert('Error', 'Please select an apartment'); return; }
+    if ((form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && selectedAptIds.length === 0) { Alert.alert('Error', 'Please select at least one apartment'); return; }
+
+    const customAmountsObj: Record<string, number> = {};
+    if (form.splitType === 'SELECTED_CUSTOM') {
+      for (const id of selectedAptIds) {
+        customAmountsObj[String(id)] = Number(customAmounts[id] || 0);
+      }
     }
-    const body = {
+
+    const body: any = {
       description: form.description.trim(),
       amount: Number(form.amount || 0),
       categoryId: Math.max(CATEGORIES.indexOf(form.category) + 1, 1),
-      apartmentId: form.apartmentId ? Number(form.apartmentId) : null,
       expenseDate: form.date,
+      splitType: form.splitType,
+      apartmentId: form.splitType === 'SINGLE' && form.apartmentId ? Number(form.apartmentId) : null,
+      selectedApartmentIds: (form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') ? selectedAptIds : null,
+      customAmounts: form.splitType === 'SELECTED_CUSTOM' ? customAmountsObj : null,
     };
+
     setSaving(true);
     try {
       if (editing) {
         await apiService.updateExpense(villaId, editing.id, body);
       } else {
         await apiService.createExpense(villaId, body);
+        // Dispatch notification for new expense
+        dispatch(incrementVillaNotification(String(villaId)));
       }
       setModalVisible(false);
       await fetchData();
@@ -338,37 +375,106 @@ const ExpensesScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>{editing ? 'Edit Expense' : 'Add Expense'}</Text>
-              <TextInput style={styles.input} placeholder="Description *" placeholderTextColor="#9CA3AF" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} />
-              <TextInput style={styles.input} placeholder="Amount (EGP) *" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
-              <TextInput style={styles.input} placeholder="Date (YYYY-MM-DD)" placeholderTextColor="#9CA3AF" value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} />
-
-              <Text style={styles.label}>Allocation</Text>
-              <View style={styles.catRow}>
-                <TouchableOpacity style={[styles.catBtn, !form.apartmentId && styles.catActive]} onPress={() => setForm({ ...form, apartmentId: '' })}>
-                  <Text style={[styles.catText, !form.apartmentId && { color: theme.onPrimary }]}>All apartments</Text>
-                </TouchableOpacity>
-                {apartments.map((a) => (
-                  <TouchableOpacity key={a.id} style={[styles.catBtn, form.apartmentId === String(a.id) && styles.catActive]} onPress={() => setForm({ ...form, apartmentId: String(a.id) })}>
-                    <Text style={[styles.catText, form.apartmentId === String(a.id) && { color: theme.onPrimary }]}>Apt {a.apartmentNumber}</Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{editing ? 'Edit Expense' : 'Add Expense'}</Text>
+                <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={28} color={theme.muted} /></TouchableOpacity>
               </View>
 
-              <Text style={styles.label}>Category</Text>
-              <View style={styles.catRow}>
-                {CATEGORIES.map((c) => (
-                  <TouchableOpacity key={c} style={[styles.catBtn, form.category === c && { backgroundColor: CATEGORY_COLORS[c] }]} onPress={() => setForm({ ...form, category: c })}>
-                    <Text style={[styles.catText, form.category === c && { color: theme.onPrimary }]}>{c}</Text>
+              {/* Date + Category */}
+              <View style={styles.twoCol}>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Date *</Text>
+                  <TextInput style={styles.input} value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} placeholderTextColor="#9CA3AF" />
+                </View>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Category *</Text>
+                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowCategoryDD(!showCategoryDD)}>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{form.category}</Text>
+                    <Ionicons name={showCategoryDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
-                ))}
+                  {showCategoryDD && <View style={styles.dropdownMenu}>
+                    {CATEGORIES.map((c) => <TouchableOpacity key={c} style={styles.dropdownItem} onPress={() => { setForm({ ...form, category: c }); setShowCategoryDD(false); }}>
+                      <Text style={[styles.dropdownItemText, form.category === c && { color: theme.primary, fontWeight: '900' }]}>{c}</Text>
+                    </TouchableOpacity>)}
+                  </View>}
+                </View>
               </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{editing ? 'Save' : 'Add'}</Text>}
-                </TouchableOpacity>
+
+              {/* Description */}
+              <Text style={styles.label}>Description</Text>
+              <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#9CA3AF" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} />
+
+              {/* Amount + Split Type */}
+              <View style={styles.twoCol}>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Amount (EGP) *</Text>
+                  <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
+                </View>
+                <View style={styles.col}>
+                  <Text style={styles.label}>Split Type *</Text>
+                  <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => setShowSplitDD(!showSplitDD)}>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find(s => s.key === form.splitType)?.label || 'Select'}</Text>
+                    <Ionicons name={showSplitDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
+                  </TouchableOpacity>
+                  {showSplitDD && <View style={styles.dropdownMenu}>
+                    {SPLIT_TYPES.map((s) => <TouchableOpacity key={s.key} style={styles.dropdownItem} onPress={() => { setForm({ ...form, splitType: s.key, apartmentId: '' }); setSelectedAptIds([]); setShowSplitDD(false); }}>
+                      <Text style={[styles.dropdownItemText, form.splitType === s.key && { color: theme.primary, fontWeight: '900' }]}>{s.label}</Text>
+                    </TouchableOpacity>)}
+                  </View>}
+                </View>
               </View>
+
+              {/* SINGLE: Apartment dropdown */}
+              {form.splitType === 'SINGLE' && (
+                <View>
+                  <Text style={styles.label}>Apartment *</Text>
+                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowAptDD(!showAptDD)}>
+                    <Text style={styles.dropdownBtnText}>{apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}</Text>
+                    <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
+                  </TouchableOpacity>
+                  {showAptDD && <View style={styles.dropdownMenu}>
+                    {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
+                      <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                    </TouchableOpacity>)}
+                  </View>}
+                </View>
+              )}
+
+              {/* SELECTED_EQUAL or SELECTED_CUSTOM: checkboxes */}
+              {(form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && (
+                <View style={styles.aptSelectBox}>
+                  <Text style={styles.aptSelectTitle}>Selected apartments</Text>
+                  {apartments.map((a) => {
+                    const checked = selectedAptIds.includes(a.id);
+                    return (
+                      <View key={a.id} style={styles.aptRow}>
+                        <TouchableOpacity style={styles.aptRowLeft} onPress={() => {
+                          setSelectedAptIds(checked ? selectedAptIds.filter(id => id !== a.id) : [...selectedAptIds, a.id]);
+                        }}>
+                          <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                            {checked && <Ionicons name="checkmark" size={12} color="#fff" />}
+                          </View>
+                          <Text style={styles.aptLabel}>Apartment {a.apartmentNumber}</Text>
+                        </TouchableOpacity>
+                        {form.splitType === 'SELECTED_CUSTOM' && (
+                          <TextInput
+                            style={styles.customAmtInput}
+                            placeholder="Custom amount"
+                            placeholderTextColor="#9CA3AF"
+                            value={customAmounts[a.id] || ''}
+                            onChangeText={(v) => setCustomAmounts({ ...customAmounts, [a.id]: v })}
+                            keyboardType="decimal-pad"
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>Save</Text>}
+              </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -479,8 +585,21 @@ const makeStyles = (theme: any) => StyleSheet.create({
   addFirstText: { color: theme.text, fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%' },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
+  modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
+  dropdownBtn: { backgroundColor: theme.chip, borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: theme.border },
+  dropdownBtnText: { color: theme.text, fontSize: 13, flex: 1, fontWeight: '600' },
+  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginBottom: 8, maxHeight: 180 },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
+  dropdownItemText: { color: theme.text, fontSize: 13 },
+  aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
+  aptSelectTitle: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 10 },
+  aptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  aptRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: theme.border, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
+  aptLabel: { color: theme.text, fontSize: 14, fontWeight: '600' },
+  customAmtInput: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 10, paddingVertical: 6, color: theme.text, fontSize: 13, width: 130 },
   sectionTitle: { color: theme.text, fontSize: 16, fontWeight: '900', marginBottom: 10, marginTop: 6 },
   label: { color: theme.muted, fontSize: 13, marginBottom: 8, marginTop: 4, fontWeight: '700' },
   input: { backgroundColor: theme.chip, borderRadius: 8, padding: 12, color: theme.text, marginBottom: 12, fontSize: 15 },

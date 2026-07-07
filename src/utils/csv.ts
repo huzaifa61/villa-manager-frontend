@@ -1,17 +1,31 @@
 import { Alert, Platform, Share } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { APP_NAME } from '../constants/logo';
 
 const cleanCell = (value: any) => {
   const text = value == null ? '' : String(value);
-  return '"' + text.replace(/"/g, '""') + '"';
+  return '\"' + text.replace(/\"/g, '\"\"') + '\"';
 };
 
-export const buildCsv = (headers: string[], rows: any[][]) => {
+export const buildCsv = (headers: string[], rows: any[][], title?: string) => {
+  const headerLine = headers.map(cleanCell).join(',');
+  const dataLines = rows.map((row) => row.map(cleanCell).join(','));
+  
+  // Add header with logo
+  const headerContent = title ? `${APP_NAME} - ${title}` : APP_NAME;
+  const timestamp = new Date().toLocaleString();
+  
   const content = [
-    headers.map(cleanCell).join(','),
-    ...rows.map((row) => row.map(cleanCell).join(',')),
+    headerContent,
+    `Generated: ${timestamp}`,
+    '',
+    headerLine,
+    ...dataLines,
+    '',
+    `© ${new Date().getFullYear()} Villa Manager Pro. All Rights Reserved.`,
   ].join('\n');
+  
   return '\ufeff' + content;
 };
 
@@ -61,6 +75,6 @@ export const exportCsvContent = async (filename: string, csv: string) => {
   Alert.alert('CSV saved', 'CSV file saved at ' + fileUri);
 };
 
-export const exportCsv = async (filename: string, headers: string[], rows: any[][]) => {
-  await exportCsvContent(filename, buildCsv(headers, rows));
+export const exportCsv = async (filename: string, headers: string[], rows: any[][], title?: string) => {
+  await exportCsvContent(filename, buildCsv(headers, rows, title));
 };

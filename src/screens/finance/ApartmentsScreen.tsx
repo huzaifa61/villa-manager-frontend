@@ -4,6 +4,7 @@ import {
   Modal, TextInput, Alert, ActivityIndicator, SafeAreaView, ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
@@ -65,9 +66,10 @@ const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 const ApartmentsScreen = () => {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const navigation = useNavigation();
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
-  const villaId = user?.villaId || VILLA_ID;
+  const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
   const [apartments, setApartments] = useState<Apartment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -116,6 +118,15 @@ const ApartmentsScreen = () => {
     setForm(emptyForm);
     setModalVisible(true);
   };
+
+  const handleAddVilla = () => {
+    (navigation as any).navigate('Villas');
+  };
+
+  // Get notification count for this villa
+  const notificationCount = useSelector((state: RootState) =>
+    state.notifications.villaNotifications[String(villaId)] || 0
+  );
 
   const openEdit = (apartment: Apartment) => {
     setEditing(apartment);

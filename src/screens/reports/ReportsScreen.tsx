@@ -14,8 +14,8 @@ type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
 
 export default function ReportsScreen() {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
-  const villaId = user?.villaId || VILLA_ID;
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
+  const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
   const [apartments, setApartments] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);

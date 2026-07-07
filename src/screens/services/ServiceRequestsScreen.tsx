@@ -28,9 +28,9 @@ const initialForm = {
 export default function ServiceRequestsScreen() {
   const { theme } = useAppPreferences();
   const styles = makeStyles(theme);
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
-  const villaId = user?.villaId || VILLA_ID;
+  const villaId = activeVillaId || user?.villaId || 1;
   const [requests, setRequests] = useState<any[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
   const [vendors, setVendors] = useState<any[]>([]);

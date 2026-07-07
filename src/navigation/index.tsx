@@ -4,15 +4,19 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from 'react-redux';
+import { RootState } from '../store';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import AcceptInviteScreen from '../screens/auth/AcceptInviteScreen';
+import VillaSelectorScreen from '../screens/auth/VillaSelectorScreen';
 import DashboardScreen from '../screens/finance/DashboardScreen';
 import ApartmentsScreen from '../screens/finance/ApartmentsScreen';
 import PaymentsScreen from '../screens/finance/PaymentsScreen';
 import ExpensesScreen from '../screens/finance/ExpensesScreen';
-import ServiceRequestsScreen from '../screens/services/ServiceRequestsScreen';
+import AddVillaScreen from '../screens/villas/AddVillaScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';import ServiceRequestsScreen from '../screens/services/ServiceRequestsScreen';
 import ReportsScreen from '../screens/reports/ReportsScreen';
 import ControlScreen from '../screens/control/ControlScreen';
 import BackupsScreen from '../screens/control/BackupsScreen';
@@ -45,6 +49,8 @@ const FinanceStack = () => {
     <Stack.Screen name="Apartments" component={ApartmentsScreen} options={{ title: t('apartments') }} />
     <Stack.Screen name="Payments" component={PaymentsScreen} options={{ title: t('payments') }} />
     <Stack.Screen name="Expenses" component={ExpensesScreen} options={{ title: t('expenses') }} />
+    <Stack.Screen name="Villas" component={VillasScreen} options={{ title: 'Properties' }} />
+    <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
   );
 };
@@ -141,6 +147,9 @@ const Splash = () => {
 
 export const Navigation = ({ isAuthenticated, isLoading }: { isAuthenticated: boolean; isLoading: boolean }) => {
   const { theme } = useAppPreferences();
+  const { activeVillaId } = useSelector((s: RootState) => s.auth);
+  const auth = useSelector((s: RootState) => s.auth);
+
   const navTheme = {
     dark: theme.mode === 'dark',
     colors: {
@@ -158,9 +167,21 @@ export const Navigation = ({ isAuthenticated, isLoading }: { isAuthenticated: bo
       heavy: { fontFamily: 'System', fontWeight: '900' as const },
     },
   };
+
+  const renderContent = () => {
+    if (isLoading) return <Splash />;
+    if (!isAuthenticated) return <AuthStack />;
+    // Show VillaSelector for GM only if no active villa AND no user-assigned villa
+    const isGM = auth.user?.role === 'GENERAL_MANAGER';
+    const hasVilla = activeVillaId && activeVillaId > 0;
+    const hasAssignedVilla = auth.user?.villaId && auth.user.villaId > 0;
+    if (isGM && !hasVilla && !hasAssignedVilla) return <VillaSelectorScreen />;
+    return <AppTabs />;
+  };
+
   return (
-  <NavigationContainer theme={navTheme}>
-    {isLoading ? <Splash /> : isAuthenticated ? <AppTabs /> : <AuthStack />}
-  </NavigationContainer>
+    <NavigationContainer theme={navTheme}>
+      {renderContent()}
+    </NavigationContainer>
   );
 };
