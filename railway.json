@@ -4,7 +4,7 @@
     "buildCommand": "npm install && npm run build:web"
   },
   "deploy": {
-    "startCommand": "npx serve dist --listen 3000",
+    "startCommand": "npx serve dist --listen $PORT",
     "restartPolicyType": "ON_FAILURE"
   }
 }
