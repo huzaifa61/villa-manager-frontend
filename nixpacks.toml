@@ -5,7 +5,10 @@ nixPkgs = ["nodejs_20"]
 cmds = ["npm install --legacy-peer-deps"]
 
 [phases.build]
-cmds = ["npm run build:web"]
+cmds = [
+  "echo 'EXPO_PUBLIC_API_URL=https://villa-manager-backend-production.up.railway.app/api' > .env",
+  "npm run build:web"
+]
 
 [start]
 cmd = "npx serve dist --listen $PORT"
