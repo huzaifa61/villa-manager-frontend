@@ -380,19 +380,19 @@ const ExpensesScreen = () => {
                 <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={28} color={theme.muted} /></TouchableOpacity>
               </View>
 
-              {/* Date + Category */}
+              {/* Date + Category — full width stacked to avoid dropdown clipping */}
               <View style={styles.twoCol}>
                 <View style={styles.col}>
                   <Text style={styles.label}>Date *</Text>
                   <TextInput style={styles.input} value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} placeholderTextColor="#9CA3AF" />
                 </View>
-                <View style={styles.col}>
+                <View style={[styles.col, { zIndex: 200 }]}>
                   <Text style={styles.label}>Category *</Text>
-                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowCategoryDD(!showCategoryDD)}>
+                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => { setShowCategoryDD(!showCategoryDD); setShowSplitDD(false); setShowAptDD(false); }}>
                     <Text style={styles.dropdownBtnText} numberOfLines={1}>{form.category}</Text>
                     <Ionicons name={showCategoryDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
-                  {showCategoryDD && <View style={styles.dropdownMenu}>
+                  {showCategoryDD && <View style={[styles.dropdownMenu, { position: 'absolute', bottom: 44, left: 0, right: 0, zIndex: 999, elevation: 10 }]}>
                     {CATEGORIES.map((c) => <TouchableOpacity key={c} style={styles.dropdownItem} onPress={() => { setForm({ ...form, category: c }); setShowCategoryDD(false); }}>
                       <Text style={[styles.dropdownItemText, form.category === c && { color: theme.primary, fontWeight: '900' }]}>{c}</Text>
                     </TouchableOpacity>)}
@@ -405,18 +405,18 @@ const ExpensesScreen = () => {
               <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#9CA3AF" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} />
 
               {/* Amount + Split Type */}
-              <View style={styles.twoCol}>
+              <View style={[styles.twoCol, { zIndex: 100 }]}>
                 <View style={styles.col}>
                   <Text style={styles.label}>Amount (EGP) *</Text>
                   <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
                 </View>
-                <View style={styles.col}>
+                <View style={[styles.col, { zIndex: 150 }]}>
                   <Text style={styles.label}>Split Type *</Text>
-                  <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => setShowSplitDD(!showSplitDD)}>
+                  <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => { setShowSplitDD(!showSplitDD); setShowCategoryDD(false); setShowAptDD(false); }}>
                     <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find(s => s.key === form.splitType)?.label || 'Select'}</Text>
                     <Ionicons name={showSplitDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
-                  {showSplitDD && <View style={styles.dropdownMenu}>
+                  {showSplitDD && <View style={[styles.dropdownMenu, { position: 'absolute', bottom: 44, left: 0, right: 0, zIndex: 999, elevation: 10 }]}>
                     {SPLIT_TYPES.map((s) => <TouchableOpacity key={s.key} style={styles.dropdownItem} onPress={() => { setForm({ ...form, splitType: s.key, apartmentId: '' }); setSelectedAptIds([]); setShowSplitDD(false); }}>
                       <Text style={[styles.dropdownItemText, form.splitType === s.key && { color: theme.primary, fontWeight: '900' }]}>{s.label}</Text>
                     </TouchableOpacity>)}
@@ -584,12 +584,12 @@ const makeStyles = (theme: any) => StyleSheet.create({
   addFirstBtn: { backgroundColor: theme.primary, borderRadius: 8, paddingHorizontal: 24, paddingVertical: 12 },
   addFirstText: { color: theme.text, fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%' },
+  modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%', overflow: 'visible' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
   dropdownBtn: { backgroundColor: theme.chip, borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: theme.border },
   dropdownBtnText: { color: theme.text, fontSize: 13, flex: 1, fontWeight: '600' },
-  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginBottom: 8, maxHeight: 180 },
+  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, maxHeight: 200, zIndex: 999, elevation: 10 },
   dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
   dropdownItemText: { color: theme.text, fontSize: 13 },
   aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
