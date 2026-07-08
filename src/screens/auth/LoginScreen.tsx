@@ -9,15 +9,22 @@ import logo from '../../../assets/logo.png';
 export default function LoginScreen({ navigation }: any) {
   const { theme, t, textAlign, rowDirection, direction } = useAppPreferences();
   const s = makeStyles(theme, textAlign, rowDirection, direction);
-  const [email, setEmail] = useState('gm@villa.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error } = useSelector((s: RootState) => s.auth);
 
   const onLogin = async () => {
     if (!email || !password) { Alert.alert(t('error'), t('enterEmailPassword')); return; }
     const r = await dispatch(loginUser({ email, password }));
-    if (loginUser.rejected.match(r)) Alert.alert(t('loginFailed'), r.payload as string);
+    if (loginUser.rejected.match(r)) {
+      Alert.alert(t('loginFailed'), r.payload as string);
+    } else {
+      // Clear any invite token from URL after successful login (web only)
+      if (typeof window !== 'undefined' && window?.history?.replaceState) {
+        window.history.replaceState({}, document.title, '/');
+      }
+    }
   };
 
   return (
@@ -38,11 +45,6 @@ export default function LoginScreen({ navigation }: any) {
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
               <Text style={s.switchLink}>{t('register')}</Text>
             </TouchableOpacity>
-          </View>
-          <View style={s.hint}>
-            <Text style={s.hintTitle}>{t('demoCredentials')}</Text>
-            <Text style={s.hintTxt}>{t('email')}: gm@villa.com</Text>
-            <Text style={s.hintTxt}>{t('password')}: password123</Text>
           </View>
         </View>
       </KeyboardAvoidingView>

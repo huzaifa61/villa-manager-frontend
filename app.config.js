@@ -1,0 +1,38 @@
+export default {
+  expo: {
+    name: "Villa Manager Pro",
+    slug: "huzaifa",
+    version: "1.0.0",
+    updates: { enabled: false },
+    runtimeVersion: "1.0.0",
+    scheme: "villamanager",
+    orientation: "portrait",
+    userInterfaceStyle: "dark",
+    icon: "./assets/logo.png",
+    splash: {
+      image: "./assets/logo.png",
+      resizeMode: "contain",
+      backgroundColor: "#071312",
+    },
+    android: {
+      adaptiveIcon: {
+        foregroundImage: "./assets/logo.png",
+        backgroundColor: "#071312",
+      },
+      package: "com.villamanager.pro",
+      usesCleartextTraffic: true,
+    },
+    ios: {
+      bundleIdentifier: "com.villamanager.pro",
+    },
+    plugins: ["expo-notifications"],
+    extra: {
+      // Bake API URL into the bundle at build time
+      apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://villa-manager-backend-production.up.railway.app/api",
+      eas: {
+        projectId: "82bed8c8-5a27-4dbd-89bf-40eff8456936",
+      },
+    },
+    owner: "huzaifa61s-team",
+  },
+};

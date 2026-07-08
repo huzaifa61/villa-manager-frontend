@@ -1,21 +1,22 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // ─── API Configuration ───────────────────────────────────────────────────────
-// Priority: EXPO_PUBLIC_API_URL env var → platform-based local fallback
+const RAILWAY_API_URL = 'https://villa-manager-backend-production.up.railway.app/api';
+
 const getBaseUrl = (): string => {
-  // If env var is set (set in .env or app.config.js), use it
+  // EAS APK build: reads from app.config.js extra (baked at build time)
+  const configUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (configUrl) return configUrl;
+
+  // Expo Go / web dev: reads from .env
   const envUrl = (process.env as any).EXPO_PUBLIC_API_URL;
   if (envUrl) return envUrl;
 
-  // Android emulator: 10.0.2.2 maps to host machine's localhost
-  // iOS simulator / web: localhost works fine
-  // Physical device: needs your machine's LAN IP e.g. http://192.168.x.x:8080/api
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:8080/api';
-  }
-  return 'http://localhost:8080/api';
+  // Final fallback — always Railway
+  return RAILWAY_API_URL;
 };
 
 const api = axios.create({
@@ -33,11 +34,13 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
-      // Token expired — clear storage and reload
+    // Only logout on 401 (token expired/invalid) — NOT on 403 (permission denied)
+    if (error?.response?.status === 401) {
       await AsyncStorage.multiRemove(['accessToken', 'user', 'activeVillaId']);
-      // Force reload to go back to login
-      if (typeof window !== 'undefined') window.location.reload();
+      // Only reload on web — not on mobile (window doesn't exist)
+      if (typeof window !== 'undefined' && window?.location?.reload) {
+        window.location.reload();
+      }
     }
     return Promise.reject(error);
   }
@@ -212,6 +215,14 @@ export const apiService = {
   },
   savePushToken: async (token: string) => {
     const { data } = await api.post('/v1/users/push-token', { token });
+    return unwrap(data);
+  },
+  updateUserSubscription: async (userId: number, body: { subscriptionExpiresAt: string; maxViewers: number }) => {
+    const { data } = await api.put(`/v1/users/${userId}/subscription`, body);
+    return unwrap(data);
+  },
+  revokeUserSubscription: async (userId: number) => {
+    const { data } = await api.delete(`/v1/users/${userId}/subscription`);
     return unwrap(data);
   },
   getNotifications: async () => {

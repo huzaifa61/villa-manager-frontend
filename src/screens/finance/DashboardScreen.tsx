@@ -23,6 +23,7 @@ export default function DashboardScreen({ navigation }: any) {
   const [villas, setVillas] = useState<any[]>([]);
   const [activeVilla, setActiveVilla] = useState<any>(null);
   const [showVillaPicker, setShowVillaPicker] = useState(false);
+  const [villaManagers, setVillaManagers] = useState<any[]>([]); // GM only: subscription overview
 
   const loadStats = useCallback(async () => {
     try {
@@ -45,6 +46,12 @@ export default function DashboardScreen({ navigation }: any) {
         collected: pays.filter((x: any) => x.status === 'COMPLETED' || x.status === 'PAID').reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
         expenses: exps.reduce((s: number, x: any) => s + Number(x.amount || 0), 0),
       });
+
+      // GM: load villa managers for subscription overview
+      if (user?.role === 'GENERAL_MANAGER') {
+        const users = await apiService.getUsers().catch(() => []);
+        setVillaManagers(Array.isArray(users) ? users.filter((u: any) => u.role === 'VILLA_MANAGER') : []);
+      }
     } finally { setLoading(false); }
   }, [villaId]);
 
@@ -114,13 +121,15 @@ export default function DashboardScreen({ navigation }: any) {
                 {villa.id === villaId && <Ionicons name="checkmark-circle" size={20} color={theme.primary} />}
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={s.addVillaBtn} onPress={() => {
-              setShowVillaPicker(false);
-              navigation.navigate('Villas' as never);
-            }}>
-              <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
-              <Text style={s.addVillaBtnText}>Add New Property</Text>
-            </TouchableOpacity>
+            {user?.role === 'GENERAL_MANAGER' && (
+              <TouchableOpacity style={s.addVillaBtn} onPress={() => {
+                setShowVillaPicker(false);
+                navigation.navigate('Villas' as never);
+              }}>
+                <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+                <Text style={s.addVillaBtnText}>Add New Property</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
       </Modal>
@@ -145,7 +154,7 @@ export default function DashboardScreen({ navigation }: any) {
                 { label: t('apartments'), icon: 'home' as IconName, color: theme.secondary, nav: 'Apartments' },
                 { label: t('payments'), icon: 'card' as IconName, color: theme.primary, nav: 'Payments' },
                 { label: t('expenses'), icon: 'receipt' as IconName, color: theme.danger, nav: 'Expenses' },
-                { label: 'Properties', icon: 'business' as IconName, color: '#8B5CF6', nav: 'Villas' },
+                ...(user?.role === 'GENERAL_MANAGER' ? [{ label: 'Properties', icon: 'business' as IconName, color: '#8B5CF6', nav: 'Villas' }] : []),
               ].map((a) => (
                 <TouchableOpacity key={a.label} style={s.actionBtn} onPress={() => {
                   navigation.navigate(a.nav as never);
@@ -188,6 +197,51 @@ export default function DashboardScreen({ navigation }: any) {
                 </Text>
               </View>
             </View>
+
+            {/* Subscription Overview — GM only */}
+            {user?.role === 'GENERAL_MANAGER' && villaManagers.length > 0 && (
+              <View style={s.subPanel}>
+                <View style={s.subPanelHeader}>
+                  <Ionicons name="time-outline" size={18} color={theme.primary} />
+                  <Text style={s.subPanelTitle}>Subscriptions</Text>
+                </View>
+                {villaManagers.map((vm: any) => {
+                  const expired = vm.subscriptionExpired;
+                  const expDate = vm.subscriptionExpiresAt ? new Date(vm.subscriptionExpiresAt) : null;
+                  const daysLeft = expDate ? Math.ceil((expDate.getTime() - Date.now()) / 86400000) : null;
+                  const nearExpiry = daysLeft !== null && daysLeft <= 7 && daysLeft > 0;
+                  return (
+                    <View key={vm.id} style={s.subRow}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.subName} numberOfLines={1}>{vm.fullName || vm.email}</Text>
+                        <Text style={s.subEmail} numberOfLines={1}>{vm.email}</Text>
+                        <Text style={s.subVilla}>
+                          {villas.find((v: any) => v.id === vm.villaId)?.name || `Villa #${vm.villaId}`}
+                        </Text>
+                      </View>
+                      <View style={s.subStatus}>
+                        {expired ? (
+                          <View style={[s.subBadge, s.subBadgeExpired]}>
+                            <Text style={s.subBadgeText}>⛔ Expired</Text>
+                          </View>
+                        ) : expDate ? (
+                          <View style={[s.subBadge, nearExpiry ? s.subBadgeWarn : s.subBadgeOk]}>
+                            <Text style={s.subBadgeText}>
+                              {nearExpiry ? `⚠️ ${daysLeft}d left` : `✅ ${expDate.toLocaleDateString()}`}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={[s.subBadge, s.subBadgeNone]}>
+                            <Text style={s.subBadgeText}>♾️ No expiry</Text>
+                          </View>
+                        )}
+                        <Text style={s.subViewerCount}>👥 {vm.maxViewers || 5} viewers</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </>
         )}
       </ScrollView>
@@ -235,6 +289,22 @@ const makeStyles = (theme: any, textAlign: 'right' | 'left', rowDirection: 'row-
   typeBadgeText: { color: theme.primary, fontSize: 10, fontWeight: '900' },
   summary: { backgroundColor: theme.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: theme.border, marginTop: 8 },
   summaryTitle: { color: theme.text, fontSize: 16, fontWeight: 'bold', marginBottom: 16 },
+  // Subscription panel styles
+  subPanel: { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 12, padding: 14, marginTop: 14 },
+  subPanelHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  subPanelTitle: { color: theme.text, fontSize: 16, fontWeight: '900' },
+  subRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopWidth: 1, borderTopColor: theme.border, gap: 10 },
+  subName: { color: theme.text, fontSize: 13, fontWeight: '800' },
+  subEmail: { color: theme.muted, fontSize: 11 },
+  subVilla: { color: theme.primary, fontSize: 11, fontWeight: '700', marginTop: 2 },
+  subStatus: { alignItems: 'flex-end', gap: 4 },
+  subBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  subBadgeOk: { backgroundColor: '#D1FAE5' },
+  subBadgeWarn: { backgroundColor: '#FEF3C7' },
+  subBadgeExpired: { backgroundColor: '#FEE2E2' },
+  subBadgeNone: { backgroundColor: theme.chip },
+  subBadgeText: { fontSize: 11, fontWeight: '800', color: '#1F2937' },
+  subViewerCount: { color: theme.muted, fontSize: 11 },
   row: { flexDirection: rowDirection, justifyContent: 'space-between', marginBottom: 12 },
   netRow: { borderTopWidth: 1, borderTopColor: theme.border, paddingTop: 12, marginTop: 4 },
   rowLbl: { color: theme.muted, fontSize: 14 },
