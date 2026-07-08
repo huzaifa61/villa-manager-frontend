@@ -11,4 +11,4 @@ cmds = [
 ]
 
 [start]
-cmd = "./node_modules/.bin/serve dist --listen tcp://0.0.0.0:$PORT --single"
+cmd = "node server.js"
