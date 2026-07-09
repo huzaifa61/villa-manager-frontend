@@ -14,6 +14,21 @@ const EGYPT_REGIONS = [
 const PROPERTY_TYPES = ['VILLA', 'BUILDING'];
 const emptyForm = { name: '', propertyType: 'VILLA', propertyNumber: '', region: '', whatsappLink: '', location: '', description: '', subscriptionExpiresAt: '', maxViewers: '5' };
 
+function ManagerSubscriptionFields({ f, setF, styles, theme }: { f: any; setF: React.Dispatch<React.SetStateAction<any>>; styles: any; theme: any }) {
+  return (
+    <View style={styles.subBox}>
+      <View style={styles.subBoxHeader}>
+        <Ionicons name="time-outline" size={16} color={theme.primary} />
+        <Text style={styles.subBoxTitle}>Manager Subscription</Text>
+      </View>
+      <Text style={styles.label}>Expiry Date (YYYY-MM-DD)</Text>
+      <TextInput style={styles.input} value={f.subscriptionExpiresAt} onChangeText={(v) => setF((prev: any) => ({ ...prev, subscriptionExpiresAt: v }))} placeholder="e.g. 2026-12-31 (blank = no expiry)" placeholderTextColor={theme.muted} />
+      <Text style={styles.label}>Max Viewers Allowed</Text>
+      <TextInput style={styles.input} value={f.maxViewers} onChangeText={(v) => setF((prev: any) => ({ ...prev, maxViewers: v }))} keyboardType="number-pad" placeholder="e.g. 5" placeholderTextColor={theme.muted} />
+    </View>
+  );
+}
+
 export default function VillasScreen() {
   const { theme } = useAppPreferences();
   const styles = makeStyles(theme);
@@ -121,19 +136,6 @@ export default function VillasScreen() {
     return { suspended, expDate: vm[0]?.subscriptionExpiresAt, manager: vm[0] };
   };
 
-  const SubFields = ({ f, setF }: { f: any; setF: (v: any) => void }) => (
-    <View style={styles.subBox}>
-      <View style={styles.subBoxHeader}>
-        <Ionicons name="time-outline" size={16} color={theme.primary} />
-        <Text style={styles.subBoxTitle}>Manager Subscription</Text>
-      </View>
-      <Text style={styles.label}>Expiry Date (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} value={f.subscriptionExpiresAt} onChangeText={(v) => setF({ ...f, subscriptionExpiresAt: v })} placeholder="e.g. 2026-12-31 (blank = no expiry)" placeholderTextColor={theme.muted} />
-      <Text style={styles.label}>Max Viewers Allowed</Text>
-      <TextInput style={styles.input} value={f.maxViewers} onChangeText={(v) => setF({ ...f, maxViewers: v })} keyboardType="number-pad" placeholder="e.g. 5" placeholderTextColor={theme.muted} />
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -167,7 +169,7 @@ export default function VillasScreen() {
           <TextInput style={styles.input} value={form.location} onChangeText={(v) => setForm({ ...form, location: v })} placeholder="Address" placeholderTextColor={theme.muted} />
           <Text style={styles.label}>Notes</Text>
           <TextInput style={[styles.input, styles.textarea]} value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} placeholder="Additional notes..." placeholderTextColor={theme.muted} multiline />
-          <SubFields f={form} setF={setForm} />
+          <ManagerSubscriptionFields f={form} setF={setForm} styles={styles} theme={theme} />
           <TouchableOpacity style={[styles.primaryButton, saving && { opacity: 0.6 }]} onPress={createVilla} disabled={saving}>
             {saving && <ActivityIndicator size="small" color={theme.onPrimary} />}
             <Text style={styles.primaryText}>{saving ? 'Creating...' : 'Create Villa'}</Text>
@@ -199,7 +201,7 @@ export default function VillasScreen() {
                   <Text style={styles.label}>Notes</Text>
                   <TextInput style={[styles.input, styles.textarea]} value={editForm.description} onChangeText={(v) => setEditForm({ ...editForm, description: v })} placeholderTextColor={theme.muted} multiline />
                   {editForm.managerId
-                    ? <SubFields f={editForm} setF={setEditForm} />
+                    ? <ManagerSubscriptionFields f={editForm} setF={setEditForm} styles={styles} theme={theme} />
                     : <View style={styles.noManagerNote}><Ionicons name="information-circle-outline" size={15} color={theme.muted} /><Text style={styles.noManagerText}>Assign a Villa Manager to set subscription.</Text></View>}
                   <View style={[styles.row, { gap: 8, marginTop: 4 }]}>
                     <TouchableOpacity style={[styles.primaryButton, { flex: 1 }, editSaving && { opacity: 0.6 }]} onPress={saveEdit} disabled={editSaving}><Text style={styles.primaryText}>{editSaving ? 'Saving...' : 'Save Changes'}</Text></TouchableOpacity>
