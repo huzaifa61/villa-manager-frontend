@@ -424,19 +424,29 @@ const ExpensesScreen = () => {
                 </View>
               </View>
 
+              {form.splitType === 'ALL_EQUAL' && apartments.length === 0 && (
+                <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+              )}
+
               {/* SINGLE: Apartment dropdown */}
               {form.splitType === 'SINGLE' && (
                 <View>
                   <Text style={styles.label}>Apartment *</Text>
-                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowAptDD(!showAptDD)}>
-                    <Text style={styles.dropdownBtnText}>{apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}</Text>
-                    <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
-                  </TouchableOpacity>
-                  {showAptDD && <View style={styles.dropdownMenu}>
-                    {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
-                      <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
-                    </TouchableOpacity>)}
-                  </View>}
+                  {apartments.length === 0 ? (
+                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                  ) : (
+                    <>
+                      <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowAptDD(!showAptDD)}>
+                        <Text style={styles.dropdownBtnText}>{apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}</Text>
+                        <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
+                      </TouchableOpacity>
+                      {showAptDD && <View style={styles.dropdownMenu}>
+                        {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
+                          <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                        </TouchableOpacity>)}
+                      </View>}
+                    </>
+                  )}
                 </View>
               )}
 
@@ -444,7 +454,9 @@ const ExpensesScreen = () => {
               {(form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && (
                 <View style={styles.aptSelectBox}>
                   <Text style={styles.aptSelectTitle}>Selected apartments</Text>
-                  {apartments.map((a) => {
+                  {apartments.length === 0 ? (
+                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                  ) : apartments.map((a) => {
                     const checked = selectedAptIds.includes(a.id);
                     return (
                       <View key={a.id} style={styles.aptRow}>
@@ -594,6 +606,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   dropdownItemText: { color: theme.text, fontSize: 13 },
   aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
   aptSelectTitle: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 10 },
+  aptEmptyText: { color: theme.muted, fontSize: 13, fontStyle: 'italic', marginBottom: 12 },
   aptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   aptRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
   checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: theme.border, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
