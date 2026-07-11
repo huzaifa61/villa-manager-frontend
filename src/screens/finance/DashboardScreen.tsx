@@ -193,7 +193,7 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={[s.row, s.netRow]}>
                 <Text style={s.rowLbl}>Net Income</Text>
                 <Text style={[s.rowVal, { color: stats.collected - stats.expenses >= 0 ? theme.primary : theme.danger }]}>
-                  EGP {(stats.collected - stats.expenses).toLocaleString()}
+                  EGP {Math.abs(stats.collected - stats.expenses).toLocaleString()}
                 </Text>
               </View>
             </View>
