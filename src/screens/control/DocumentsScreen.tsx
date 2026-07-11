@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { exportCsv } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
@@ -15,7 +16,8 @@ const types = ['Receipt', 'Contract', 'Warranty', 'Permit', 'Insurance', 'Other'
 
 export default function DocumentsScreen() {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
+  const villaId = activeVillaId || user?.villaId || null;
   const permissions = permissionsFor(user);
   const styles = makeStyles(theme);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -71,9 +73,13 @@ export default function DocumentsScreen() {
     ]);
   };
 
-  const exportDocuments = () => exportCsv('documents.csv',
-    ['Title', 'Type', 'Link / Reference', 'Renewal Date', 'Notes', 'Updated At'],
-    filtered.map((doc) => [doc.title, doc.type, doc.link, doc.renewalDate, doc.notes, doc.updatedAt]));
+  const exportDocuments = async () => {
+    const villaName = await getActiveVillaName(villaId);
+    await exportCsv('documents.csv',
+      ['Title', 'Type', 'Link / Reference', 'Renewal Date', 'Notes', 'Updated At'],
+      filtered.map((doc) => [doc.title, doc.type, doc.link, doc.renewalDate, doc.notes, doc.updatedAt]),
+      { title: 'Documents', villaName });
+  };
 
   if (!permissions.canManageVilla) {
     return (

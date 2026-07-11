@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
+import { money, isPaymentPaid, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
@@ -15,6 +17,7 @@ interface Payment {
   id: number;
   apartmentId: number;
   apartmentNumber?: string;
+  isSplit?: boolean;
   amount: number;
   paymentDate?: string;
   paymentMethod?: string;
@@ -25,9 +28,13 @@ interface Payment {
 
 const VILLA_ID = 1;
 const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', 'Other'];
-const STATUS_COLORS: Record<string, string> = { COMPLETED: '#10B981', PAID: '#10B981', PENDING: '#F59E0B', OVERDUE: '#EF4444', PARTIAL: '#3B82F6' };
-const emptyForm = { apartmentId: '', amount: '', paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', referenceNumber: '', notes: '', status: 'COMPLETED' };
-const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
+const SPLIT_TYPES = [
+  { key: 'ALL_EQUAL', label: 'All apartments — equal split' },
+  { key: 'SINGLE', label: 'Single apartment' },
+  { key: 'SELECTED_EQUAL', label: 'Selected apartments — equal split' },
+  { key: 'SELECTED_CUSTOM', label: 'Selected apartments — custom amounts' },
+];
+const emptyForm = { splitType: 'SINGLE', apartmentId: '', amount: '', paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', referenceNumber: '', notes: '', status: 'COMPLETED' };
 
 const PaymentsScreen = () => {
   const { theme } = useAppPreferences();
@@ -43,7 +50,10 @@ const PaymentsScreen = () => {
   const [editing, setEditing] = useState<Payment | null>(null);
   const [query, setQuery] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [selectedAptIds, setSelectedAptIds] = useState<number[]>([]);
+  const [customAmounts, setCustomAmounts] = useState<Record<number, string>>({});
   const [showMethodDD, setShowMethodDD] = useState(false);
+  const [showSplitDD, setShowSplitDD] = useState(false);
   const [showAptDD, setShowAptDD] = useState(false);
 
   const fetchData = async () => {
@@ -76,42 +86,83 @@ const PaymentsScreen = () => {
   const openAdd = () => {
     setEditing(null);
     setForm(emptyForm);
+    setSelectedAptIds([]);
+    setCustomAmounts({});
+    setShowSplitDD(false);
+    setShowAptDD(false);
+    setShowMethodDD(false);
     setModalVisible(true);
   };
 
   const openEdit = (payment: Payment) => {
     setEditing(payment);
     setForm({
+      splitType: 'SINGLE',
       apartmentId: String(payment.apartmentId || ''),
       amount: String(payment.amount || ''),
       paymentDate: payment.paymentDate || new Date().toISOString().split('T')[0],
-      paymentMethod: payment.paymentMethod || 'CASH',
+      paymentMethod: payment.paymentMethod || 'Cash',
       referenceNumber: payment.referenceNumber || '',
       notes: payment.notes || '',
       status: payment.status || 'COMPLETED',
     });
+    setSelectedAptIds([]);
+    setCustomAmounts({});
+    setShowSplitDD(false);
+    setShowAptDD(false);
+    setShowMethodDD(false);
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!form.apartmentId || !form.amount) {
-      Alert.alert('Error', 'Apartment and amount are required');
+    if (!form.amount) {
+      Alert.alert('Error', 'Amount is required');
       return;
     }
-    const body = {
-      amount: Number(form.amount || 0),
-      paymentDate: form.paymentDate,
-      paymentMethod: form.paymentMethod,
-      referenceNumber: form.referenceNumber,
-      notes: form.notes,
-      status: form.status,
-    };
+    if (form.splitType === 'SINGLE' && !form.apartmentId) {
+      Alert.alert('Error', 'Please select an apartment');
+      return;
+    }
+    if ((form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && selectedAptIds.length === 0) {
+      Alert.alert('Error', 'Please select at least one apartment');
+      return;
+    }
+    if (form.splitType === 'ALL_EQUAL' && apartments.length === 0) {
+      Alert.alert('Error', 'No apartments available to split this payment');
+      return;
+    }
+
+    const customAmountsObj: Record<string, number> = {};
+    if (form.splitType === 'SELECTED_CUSTOM') {
+      for (const id of selectedAptIds) {
+        customAmountsObj[String(id)] = Number(customAmounts[id] || 0);
+      }
+    }
+
     setSaving(true);
     try {
       if (editing) {
-        await apiService.updatePayment(villaId, editing.id, body);
+        await apiService.updatePayment(villaId, editing.id, {
+          amount: Number(form.amount || 0),
+          paymentDate: form.paymentDate,
+          paymentMethod: form.paymentMethod,
+          referenceNumber: form.referenceNumber,
+          notes: form.notes,
+          status: form.status,
+        });
       } else {
-        await apiService.createPayment(villaId, Number(form.apartmentId), body);
+        await apiService.createPayment(villaId, {
+          amount: Number(form.amount || 0),
+          paymentDate: form.paymentDate,
+          paymentMethod: form.paymentMethod,
+          referenceNumber: form.referenceNumber,
+          notes: form.notes,
+          status: form.status,
+          splitType: form.splitType,
+          apartmentId: form.splitType === 'SINGLE' && form.apartmentId ? Number(form.apartmentId) : null,
+          selectedApartmentIds: (form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') ? selectedAptIds : null,
+          customAmounts: form.splitType === 'SELECTED_CUSTOM' ? customAmountsObj : null,
+        });
       }
       setModalVisible(false);
       await fetchData();
@@ -142,6 +193,7 @@ const PaymentsScreen = () => {
   };
 
   const exportPayments = async () => {
+    const villaName = await getActiveVillaName(villaId);
     try {
       const csv = await apiService.exportPaymentsCsv(villaId);
       await exportCsvContent('payments.csv', csv);
@@ -151,30 +203,33 @@ const PaymentsScreen = () => {
         filteredPayments.map((p) => [
           p.id,
           p.apartmentId,
-          p.apartmentNumber,
+          p.apartmentNumber || 'All apartments',
           p.amount,
           p.paymentDate,
           p.paymentMethod,
           p.referenceNumber,
           p.status,
           p.notes,
-        ]));
+        ]),
+        { title: 'Payments Report', villaName });
     }
   };
 
-  const renderItem = ({ item }: { item: Payment }) => (
+  const renderItem = ({ item }: { item: Payment }) => {
+    const paid = isPaymentPaid(item.status);
+    return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={{ flex: 1, paddingRight: 10 }}>
-          <Text style={styles.unit}>Apartment {item.apartmentNumber || item.apartmentId}</Text>
-          <Text style={styles.date}>{item.paymentDate || ''} • {item.paymentMethod || 'CASH'}</Text>
+          <Text style={styles.unit}>Apartment {item.apartmentNumber || (item.apartmentId ? item.apartmentId : 'All apartments')}</Text>
+          <Text style={styles.date}>{item.paymentDate || ''} • {item.paymentMethod || 'Cash'}</Text>
           {item.referenceNumber ? <Text style={styles.notes}>Ref: {item.referenceNumber}</Text> : null}
           {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
         </View>
         <View>
-          <Text style={styles.amount}>{money(item.amount)}</Text>
-          <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] || theme.muted }]}>
-            <Text style={styles.badgeText}>{item.status}</Text>
+          <Text style={[styles.amount, { color: paid ? PAID_COLOR : UNPAID_COLOR }]}>{money(item.amount)}</Text>
+          <View style={[styles.badge, { backgroundColor: paid ? PAID_COLOR : UNPAID_COLOR }]}>
+            <Text style={styles.badgeText}>{paid ? 'PAID' : 'NOT PAID'}</Text>
           </View>
         </View>
       </View>
@@ -183,14 +238,14 @@ const PaymentsScreen = () => {
         <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
       </View> : null}
     </View>
-  );
+  );};
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Payments ({filteredPayments.length})</Text>
-          <Text style={styles.total}>Collected: {money(totalPayments)}</Text>
+          <Text style={styles.total}>Collected: <Text style={{ color: PAID_COLOR }}>{money(totalPayments)}</Text></Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.exportBtn} onPress={exportPayments}>
@@ -242,29 +297,94 @@ const PaymentsScreen = () => {
                 </View>
               </View>
 
-              {/* Split Type + Apartment */}
-              <View style={styles.twoCol}>
-                <View style={styles.col}>
+              {/* Split Type */}
+              {!editing && (
+                <View style={[styles.splitSection, { zIndex: showSplitDD ? 400 : 150 }]}>
+                  {showSplitDD && (
+                    <ScrollView style={[styles.dropdownMenu, { marginBottom: 4 }]} nestedScrollEnabled>
+                      {SPLIT_TYPES.map((split) => (
+                        <TouchableOpacity key={split.key} style={styles.dropdownItem} onPress={() => {
+                          setForm({ ...form, splitType: split.key, apartmentId: '' });
+                          setSelectedAptIds([]);
+                          setCustomAmounts({});
+                          setShowSplitDD(false);
+                        }}>
+                          <Text style={[styles.dropdownItemText, form.splitType === split.key && { color: theme.primary, fontWeight: '900' }]}>{split.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                   <Text style={styles.label}>Split Type *</Text>
-                  <View style={styles.dropdownBtn}>
-                    <Text style={styles.dropdownBtnText}>Single apartment</Text>
-                  </View>
-                </View>
-                <View style={styles.col}>
-                  <Text style={styles.label}>Apartment *</Text>
-                  <TouchableOpacity style={styles.dropdownBtn} onPress={() => !editing && setShowAptDD(!showAptDD)}>
-                    <Text style={styles.dropdownBtnText} numberOfLines={1}>
-                      {apartments.find(a => String(a.id) === form.apartmentId) ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select'}
-                    </Text>
-                    {!editing && <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />}
+                  <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => { setShowSplitDD(!showSplitDD); setShowAptDD(false); setShowMethodDD(false); }}>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find((split) => split.key === form.splitType)?.label || 'Select'}</Text>
+                    <Ionicons name={showSplitDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
-                  {showAptDD && !editing && <View style={styles.dropdownMenu}>
-                    {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
-                      <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
-                    </TouchableOpacity>)}
-                  </View>}
                 </View>
-              </View>
+              )}
+
+              {form.splitType === 'ALL_EQUAL' && apartments.length === 0 && (
+                <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+              )}
+
+              {(editing || form.splitType === 'SINGLE') && (
+                <View>
+                  <Text style={styles.label}>Apartment *</Text>
+                  {apartments.length === 0 ? (
+                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                  ) : (
+                    <>
+                      <TouchableOpacity style={styles.dropdownBtn} onPress={() => !editing && setShowAptDD(!showAptDD)} disabled={!!editing}>
+                        <Text style={styles.dropdownBtnText} numberOfLines={1}>
+                          {apartments.find((a) => String(a.id) === form.apartmentId) ? 'Apartment ' + apartments.find((a) => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}
+                        </Text>
+                        {!editing && <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />}
+                      </TouchableOpacity>
+                      {showAptDD && !editing && (
+                        <View style={styles.dropdownMenu}>
+                          {apartments.map((a) => (
+                            <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
+                              <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              )}
+
+              {!editing && (form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && (
+                <View style={styles.aptSelectBox}>
+                  <Text style={styles.aptSelectTitle}>Selected apartments</Text>
+                  {apartments.length === 0 ? (
+                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                  ) : apartments.map((a) => {
+                    const checked = selectedAptIds.includes(a.id);
+                    return (
+                      <View key={a.id} style={styles.aptRow}>
+                        <TouchableOpacity style={styles.aptRowLeft} onPress={() => {
+                          setSelectedAptIds(checked ? selectedAptIds.filter((id) => id !== a.id) : [...selectedAptIds, a.id]);
+                        }}>
+                          <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+                            {checked && <Ionicons name="checkmark" size={12} color="#fff" />}
+                          </View>
+                          <Text style={styles.aptLabel}>Apartment {a.apartmentNumber}</Text>
+                        </TouchableOpacity>
+                        {form.splitType === 'SELECTED_CUSTOM' && (
+                          <TextInput
+                            style={styles.customAmtInput}
+                            placeholder="Custom amount"
+                            placeholderTextColor="#9CA3AF"
+                            value={customAmounts[a.id] || ''}
+                            onChangeText={(v) => setCustomAmounts({ ...customAmounts, [a.id]: v })}
+                            keyboardType="decimal-pad"
+                          />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
 
               {/* Method */}
               <Text style={styles.label}>Method</Text>
@@ -307,7 +427,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   card: { backgroundColor: theme.card, borderRadius: 12, padding: 16, marginBottom: 12 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   unit: { color: theme.text, fontSize: 16, fontWeight: 'bold' },
-  amount: { color: theme.primary, fontSize: 18, fontWeight: 'bold', textAlign: 'right' },
+  amount: { fontSize: 18, fontWeight: 'bold', textAlign: 'right' },
   badge: { borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-end', marginTop: 4 },
   badgeText: { color: theme.onPrimary, fontSize: 10, fontWeight: '600' },
   date: { color: theme.muted, fontSize: 13, marginTop: 3 },
@@ -322,7 +442,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   addFirstBtn: { backgroundColor: theme.primary, borderRadius: 8, paddingHorizontal: 24, paddingVertical: 12 },
   addFirstText: { color: theme.text, fontSize: 15, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%' },
+  modal: { backgroundColor: theme.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '90%', overflow: 'visible' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
   infoBanner: { backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12, marginBottom: 16 },
@@ -333,10 +453,20 @@ const makeStyles = (theme: any) => StyleSheet.create({
   col: { flex: 1 },
   dropdownBtn: { backgroundColor: theme.chip, borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: theme.border },
   dropdownBtnText: { color: theme.text, fontSize: 13, flex: 1, fontWeight: '600' },
-  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginBottom: 8, maxHeight: 200 },
+  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, marginBottom: 8, maxHeight: 280, zIndex: 999, elevation: 10 },
   dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
   dropdownItemText: { color: theme.text, fontSize: 13 },
-  saveBtn: { flex: 1, backgroundColor: theme.primary, borderRadius: 8, padding: 14, alignItems: 'center' },
+  splitSection: { marginBottom: 4 },
+  aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
+  aptSelectTitle: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 10 },
+  aptEmptyText: { color: theme.muted, fontSize: 13, fontStyle: 'italic', marginBottom: 12 },
+  aptRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  aptRowLeft: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  checkbox: { width: 20, height: 20, borderRadius: 4, borderWidth: 2, borderColor: theme.border, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
+  aptLabel: { color: theme.text, fontSize: 14, fontWeight: '600' },
+  customAmtInput: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, paddingHorizontal: 10, paddingVertical: 6, color: theme.text, fontSize: 13, width: 130 },
+  saveBtn: { flex: 1, backgroundColor: theme.primary, borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 8 },
   saveText: { color: theme.onPrimary, fontWeight: '600' },
 });
 

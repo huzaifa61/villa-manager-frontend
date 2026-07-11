@@ -5,10 +5,11 @@ import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { exportCsv } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
+import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 
 const VILLA_ID = 1;
 const CATEGORIES = ['Maintenance', 'Utilities', 'Cleaning', 'Security', 'Management', 'Other'];
-const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
 
@@ -150,7 +151,8 @@ export default function ReportsScreen() {
 
   const exportReport = async () => {
     const data = reportData();
-    await exportCsv(data.filename, data.headers, data.rows);
+    const villaName = await getActiveVillaName(villaId);
+    await exportCsv(data.filename, data.headers, data.rows, { title: 'Reports', villaName });
   };
 
   const printReport = async () => {
@@ -175,7 +177,7 @@ export default function ReportsScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.cards}>
             <View style={styles.card}><Text style={styles.cardLabel}>Total Expenses</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalExpenses)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Collected</Text><Text style={[styles.cardValue, { color: theme.primary }]}>{money(totals.totalCollected)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>Total Collected</Text><Text style={[styles.cardValue, { color: PAID_COLOR }]}>{money(totals.totalCollected)}</Text></View>
             <View style={styles.card}><Text style={styles.cardLabel}>Cash Balance</Text><Text style={[styles.cardValue, { color: totals.cashBalance >= 0 ? theme.primary : theme.danger }]}>{money(totals.cashBalance)}</Text></View>
             <View style={styles.card}><Text style={styles.cardLabel}>Total Unpaid</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalUnpaid)}</Text></View>
           </View>
@@ -195,9 +197,9 @@ export default function ReportsScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.primary}>Apartment {row.apartment}</Text>
                     <Text style={styles.muted}>{row.owner}</Text>
-                    <Text style={styles.muted}>Opening {money(row.opening)} • Allocated {money(row.allocated)} • Paid {money(row.paid)}</Text>
+                    <Text style={styles.muted}>Opening {money(row.opening)} • Allocated {money(row.allocated)} • Paid <Text style={{ color: PAID_COLOR }}>{money(row.paid)}</Text></Text>
                   </View>
-                  <Text style={[styles.amount, { color: row.balance > 0 ? theme.danger : theme.primary }]}>{money(row.balance)}</Text>
+                  <Text style={[styles.amount, { color: Math.max(row.balance, 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(row.balance, 0))}</Text>
                 </View>
               ))}
             </View>
@@ -211,7 +213,7 @@ export default function ReportsScreen() {
                     <Text style={styles.primary}>{row.detail}</Text>
                     <Text style={styles.muted}>{row.date} • {row.type} • Running {money(row.running)}</Text>
                   </View>
-                  <Text style={[styles.amount, { color: row.amount >= 0 ? theme.primary : theme.danger }]}>{money(row.amount)}</Text>
+                  <Text style={[styles.amount, { color: row.type === 'Payment' ? PAID_COLOR : UNPAID_COLOR }]}>{money(row.amount)}</Text>
                 </View>
               ))}
             </View>

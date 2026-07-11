@@ -1,0 +1,66 @@
+# ============================================
+# DP World Standard .cursorignore
+# Auto-created by Cursor Security Hook
+# Do NOT remove or modify without S&G approval
+# ============================================
+
+# Environment & Secrets
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+*.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+*.csr
+secrets/
+credentials/
+private/
+
+# Infrastructure & Config
+terraform/
+*.tfvars
+*.tfstate
+*.tfstate.backup
+ansible/
+k8s/
+helm/
+docker-compose.yml
+docker-compose.*.yml
+Dockerfile
+.dockerenv
+
+# CI/CD
+.github/workflows/
+.gitlab-ci.yml
+Jenkinsfile
+.circleci/
+.travis.yml
+
+# Cloud Provider Config
+.aws/
+.azure/
+.gcp/
+serviceaccount*.json
+*-credentials.json
+
+# Database
+*.sql
+*.dump
+*.db
+*.sqlite
+
+# Logs (may contain sensitive runtime data)
+*.log
+logs/
+
+# Dependency lock files
+package-lock.json
+yarn.lock
+poetry.lock
+Pipfile.lock
+composer.lock

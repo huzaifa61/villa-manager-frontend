@@ -5,23 +5,40 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 
-const emptyVendor = { name: '', contactPerson: '', phoneNumber: '', email: '', address: '', serviceType: '', isActive: true };
+const emptyVendor = { name: '', contactPerson: '', phoneNumber: '', email: '', address: '', serviceType: '', region: '', isActive: true };
 
 export default function VendorsScreen() {
   const { theme } = useAppPreferences();
-  const { user } = useSelector((s: RootState) => s.auth);
+  const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
+  const villaId = activeVillaId || user?.villaId || null;
   const styles = makeStyles(theme);
   const [vendors, setVendors] = useState<any[]>([]);
+  const [villaRegion, setVillaRegion] = useState('');
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyVendor);
+
+  const loadVillaRegion = useCallback(async () => {
+    if (!villaId) {
+      setVillaRegion('');
+      return;
+    }
+    try {
+      const villas = await apiService.getVillas().catch(() => []);
+      const villa = (Array.isArray(villas) ? villas : []).find((item: any) => item.id === villaId);
+      setVillaRegion(villa?.region || '');
+    } catch {
+      setVillaRegion('');
+    }
+  }, [villaId]);
 
   const fetchVendors = useCallback(async () => {
     try {
@@ -33,12 +50,24 @@ export default function VendorsScreen() {
     }
   }, []);
 
-  useFocusEffect(useCallback(() => { fetchVendors(); }, [fetchVendors]));
+  useFocusEffect(useCallback(() => {
+    loadVillaRegion();
+    fetchVendors();
+  }, [loadVillaRegion, fetchVendors]));
 
   const filtered = useMemo(() => vendors.filter((vendor) => {
-    const haystack = [vendor.name, vendor.contactPerson, vendor.phoneNumber, vendor.email, vendor.address, vendor.serviceType].join(' ').toLowerCase();
+    const haystack = [vendor.name, vendor.contactPerson, vendor.phoneNumber, vendor.email, vendor.address, vendor.serviceType, vendor.region].join(' ').toLowerCase();
     return haystack.includes(query.toLowerCase());
   }), [vendors, query]);
+
+  const openAddForm = () => {
+    setEditingId(null);
+    setForm({
+      ...emptyVendor,
+      region: permissions.isVillaManager ? villaRegion : '',
+    });
+    setShowForm(true);
+  };
 
   const startEdit = (vendor: any) => {
     setEditingId(vendor.id);
@@ -49,6 +78,7 @@ export default function VendorsScreen() {
       email: vendor.email || '',
       address: vendor.address || '',
       serviceType: vendor.serviceType || '',
+      region: vendor.region || '',
       isActive: vendor.isActive !== false,
     });
     setShowForm(true);
@@ -65,9 +95,17 @@ export default function VendorsScreen() {
       Alert.alert('Name required', 'Please add the vendor name.');
       return;
     }
+    const region = permissions.isVillaManager ? villaRegion : form.region.trim();
+    if (!region) {
+      Alert.alert('Location required', permissions.isVillaManager
+        ? 'Your villa must have a location/region set before adding vendors.'
+        : 'Please add the vendor location/region.');
+      return;
+    }
     try {
-      if (editingId) await apiService.updateVendor(editingId, form);
-      else await apiService.createVendor(form);
+      const payload = { ...form, region };
+      if (editingId) await apiService.updateVendor(editingId, payload);
+      else await apiService.createVendor(payload);
       resetForm();
       await fetchVendors();
     } catch (error: any) {
@@ -89,9 +127,13 @@ export default function VendorsScreen() {
     ]);
   };
 
-  const exportVendors = () => exportCsv('vendors.csv',
-    ['ID', 'Name', 'Contact Person', 'Phone', 'Email', 'Service Type', 'Address', 'Active'],
-    filtered.map((vendor) => [vendor.id, vendor.name, vendor.contactPerson, vendor.phoneNumber, vendor.email, vendor.serviceType, vendor.address, vendor.isActive !== false ? 'Yes' : 'No']));
+  const exportVendors = async () => {
+    const villaName = await getActiveVillaName(villaId);
+    await exportCsv('vendors.csv',
+      ['ID', 'Name', 'Contact Person', 'Phone', 'Email', 'Service Type', 'Location', 'Address', 'Active'],
+      filtered.map((vendor) => [vendor.id, vendor.name, vendor.contactPerson, vendor.phoneNumber, vendor.email, vendor.serviceType, vendor.region, vendor.address, vendor.isActive !== false ? 'Yes' : 'No']),
+      { title: 'Vendors', villaName });
+  };
 
   if (!permissions.canManageVendors) {
     return (
@@ -115,11 +157,11 @@ export default function VendorsScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.title}>Vendors</Text>
-          <Text style={styles.subtitle}>Private provider directory.</Text>
+          <Text style={styles.subtitle}>{permissions.isGeneralManager ? 'Private provider directory.' : `Providers in ${villaRegion || 'your area'}.`}</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.button} onPress={exportVendors}><Ionicons name="download-outline" size={17} color={theme.text} /><Text style={styles.buttonText}>CSV</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setShowForm(!showForm)}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => (showForm ? resetForm() : openAddForm())}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
         </View>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
@@ -131,6 +173,18 @@ export default function VendorsScreen() {
         {showForm ? (
           <View style={styles.panel}>
             <Text style={styles.panelTitle}>{editingId ? 'Edit Vendor' : 'Add Vendor'}</Text>
+            <Text style={styles.label}>Location / Region *</Text>
+            <TextInput
+              style={[styles.input, permissions.isVillaManager && styles.inputDisabled]}
+              value={permissions.isVillaManager ? villaRegion : form.region}
+              onChangeText={(region) => setForm({ ...form, region })}
+              placeholder="e.g. Marina, New Cairo"
+              placeholderTextColor={theme.muted}
+              editable={permissions.isGeneralManager}
+            />
+            {permissions.isVillaManager && !villaRegion ? (
+              <Text style={styles.helperText}>Set your villa location/region first so vendors can be added to your area.</Text>
+            ) : null}
             <TextInput style={styles.input} value={form.name} onChangeText={(name) => setForm({ ...form, name })} placeholder="Name" placeholderTextColor={theme.muted} />
             <TextInput style={styles.input} value={form.serviceType} onChangeText={(serviceType) => setForm({ ...form, serviceType })} placeholder="Service type" placeholderTextColor={theme.muted} />
             <TextInput style={styles.input} value={form.contactPerson} onChangeText={(contactPerson) => setForm({ ...form, contactPerson })} placeholder="Contact person" placeholderTextColor={theme.muted} />
@@ -158,6 +212,7 @@ export default function VendorsScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cardTitle}>{vendor.name}</Text>
                     <Text style={styles.muted}>{vendor.serviceType || 'Service'} • {vendor.phoneNumber || 'No phone'}</Text>
+                    {vendor.region ? <Text style={styles.muted}>Location: {vendor.region}</Text> : null}
                     {vendor.contactPerson ? <Text style={styles.muted}>Contact: {vendor.contactPerson}</Text> : null}
                   </View>
                   <Text style={[styles.badge, vendor.isActive === false && styles.inactiveBadge]}>{vendor.isActive === false ? 'Inactive' : 'Active'}</Text>
@@ -191,7 +246,10 @@ const makeStyles = (theme: any) => StyleSheet.create({
   search: { color: theme.text, flex: 1, paddingVertical: 11 },
   panel: { backgroundColor: theme.card, borderRadius: 12, borderColor: theme.chip, borderWidth: 1, padding: 14, gap: 10, marginBottom: 16 },
   panelTitle: { color: theme.text, fontSize: 18, fontWeight: '900', marginBottom: 2 },
+  label: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 6 },
+  helperText: { color: theme.danger, fontSize: 12, marginTop: -4, marginBottom: 4, lineHeight: 17 },
   input: { backgroundColor: theme.background, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, color: theme.text, paddingHorizontal: 12, paddingVertical: 10 },
+  inputDisabled: { opacity: 0.75 },
   textarea: { minHeight: 70, textAlignVertical: 'top' },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 2 },
   toggleText: { color: theme.subtleText, fontWeight: '700' },

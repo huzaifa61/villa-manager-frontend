@@ -8,9 +8,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { incrementVillaNotification } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { money } from '../../utils/money';
 
 interface Expense {
   id: number;
@@ -36,13 +38,17 @@ interface ExpenseTemplate {
 }
 
 const CATEGORIES = [
-  'Porter Salary', 'Electricity', 'Water', 'Gas', 'Maintenance',
-  'Cleaning', 'Security', 'Management Fee', 'Insurance', 'Other',
+  'Porter Salary', 'Cleaning', 'Electricity', 'Water', 'Gas', 'Internet',
+  'Security', 'Elevator', 'Pump', 'Generator', 'Garbage', 'Repairs',
+  'Plumbing', 'Painting', 'Pest Control', 'Carpenter', 'CCTV',
+  'Dish / Satellite', 'Legal / Admin', 'Emergency', 'Other',
 ];
 const CATEGORY_COLORS: Record<string, string> = {
-  'Porter Salary': '#8B5CF6', 'Electricity': '#F59E0B', 'Water': '#3B82F6',
-  'Gas': '#F97316', 'Maintenance': '#EF4444', 'Cleaning': '#10B981',
-  'Security': '#DC2626', 'Management Fee': '#6366F1', 'Insurance': '#0EA5E9', 'Other': '#6B7280',
+  'Porter Salary': '#8B5CF6', 'Cleaning': '#10B981', 'Electricity': '#F59E0B', 'Water': '#3B82F6',
+  'Gas': '#F97316', 'Internet': '#6366F1', 'Security': '#DC2626', 'Elevator': '#0EA5E9',
+  'Pump': '#14B8A6', 'Generator': '#EAB308', 'Garbage': '#84CC16', 'Repairs': '#EF4444',
+  'Plumbing': '#06B6D4', 'Painting': '#EC4899', 'Pest Control': '#A855F7', 'Carpenter': '#D97706',
+  'CCTV': '#64748B', 'Dish / Satellite': '#7C3AED', 'Legal / Admin': '#475569', 'Emergency': '#B91C1C', 'Other': '#6B7280',
 };
 const SPLIT_TYPES = [
   { key: 'ALL_EQUAL', label: 'All apartments — equal split' },
@@ -51,8 +57,7 @@ const SPLIT_TYPES = [
   { key: 'SELECTED_CUSTOM', label: 'Selected apartments — custom amounts' },
 ];
 const emptyForm = { description: '', amount: '', category: 'Porter Salary', splitType: 'ALL_EQUAL', apartmentId: '', date: new Date().toISOString().split('T')[0] };
-const emptyTemplateForm = { templateName: '', description: '', amount: '', category: 'Maintenance', apartmentId: '', dayOfMonth: '1', isActive: true };
-const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
+const emptyTemplateForm = { templateName: '', description: '', amount: '', category: 'Repairs', apartmentId: '', dayOfMonth: '1', isActive: true };
 
 const ExpensesScreen = () => {
   const { theme } = useAppPreferences();
@@ -103,7 +108,7 @@ const ExpensesScreen = () => {
     const q = query.trim().toLowerCase();
     if (!q) return expenses;
     return expenses.filter((e) => [
-      e.description, e.expenseDate, e.categoryName || 'Maintenance', e.apartmentNumber || 'All apartments', e.amount,
+      e.description, e.expenseDate, e.categoryName || 'Other', e.apartmentNumber || 'All apartments', e.amount,
     ].some((value) => String(value || '').toLowerCase().includes(q)));
   }, [expenses, query]);
 
@@ -144,7 +149,7 @@ const ExpensesScreen = () => {
       templateName: template.templateName || '',
       description: template.description || '',
       amount: String(template.amount || ''),
-      category: CATEGORIES[(template.categoryId || 1) - 1] || 'Maintenance',
+      category: CATEGORIES[(template.categoryId || 1) - 1] || 'Other',
       apartmentId: template.apartmentId ? String(template.apartmentId) : '',
       dayOfMonth: String(template.dayOfMonth || 1),
       isActive: template.isActive !== false,
@@ -273,6 +278,7 @@ const ExpensesScreen = () => {
   };
 
   const exportExpenses = async () => {
+    const villaName = await getActiveVillaName(villaId);
     try {
       const csv = await apiService.exportExpensesCsv(villaId);
       await exportCsvContent('expenses.csv', csv);
@@ -283,16 +289,17 @@ const ExpensesScreen = () => {
           e.id,
           e.apartmentId,
           e.apartmentNumber || 'All apartments',
-          e.categoryName || CATEGORIES[(e.categoryId || 1) - 1] || 'Maintenance',
+          e.categoryName || CATEGORIES[(e.categoryId || 1) - 1] || 'Other',
           e.description,
           e.amount,
           e.expenseDate,
-        ]));
+        ]),
+        { title: 'Expenses Report', villaName });
     }
   };
 
   const renderItem = ({ item }: { item: Expense }) => {
-    const category = item.categoryName || CATEGORIES[(item.categoryId || 1) - 1] || 'Maintenance';
+    const category = item.categoryName || CATEGORIES[(item.categoryId || 1) - 1] || 'Other';
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
@@ -317,7 +324,7 @@ const ExpensesScreen = () => {
   };
 
   const renderTemplate = (template: ExpenseTemplate) => {
-    const category = CATEGORIES[(template.categoryId || 1) - 1] || 'Maintenance';
+    const category = CATEGORIES[(template.categoryId || 1) - 1] || 'Other';
     const apartment = apartments.find((a) => a.id === template.apartmentId);
     return (
       <View key={template.id} style={styles.templateCard}>
@@ -387,11 +394,21 @@ const ExpensesScreen = () => {
                   <TextInput style={styles.input} value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} placeholderTextColor="#9CA3AF" />
                 </View>
                 <View style={[styles.col, { zIndex: showCategoryDD ? 400 : 1 }]}>
-                  {showCategoryDD && <ScrollView style={[styles.dropdownMenu, { marginBottom: 4 }]} nestedScrollEnabled>
-                    {CATEGORIES.map((c) => <TouchableOpacity key={c} style={styles.dropdownItem} onPress={() => { setForm({ ...form, category: c }); setShowCategoryDD(false); }}>
-                      <Text style={[styles.dropdownItemText, form.category === c && { color: theme.primary, fontWeight: '900' }]}>{c}</Text>
-                    </TouchableOpacity>)}
-                  </ScrollView>}
+                  {showCategoryDD && (
+                    <ScrollView
+                      style={[styles.dropdownMenu, styles.categoryDropdownMenu]}
+                      contentContainerStyle={styles.categoryDropdownContent}
+                      nestedScrollEnabled
+                      showsVerticalScrollIndicator
+                    >
+                      {CATEGORIES.map((c) => (
+                        <TouchableOpacity key={c} style={styles.dropdownItem} onPress={() => { setForm({ ...form, category: c }); setShowCategoryDD(false); }}>
+                          <Text style={[styles.dropdownItemText, form.category === c && styles.dropdownItemTextActive]}>{c}</Text>
+                          {form.category === c ? <Ionicons name="checkmark" size={16} color={theme.primary} /> : null}
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                   <Text style={styles.label}>Category *</Text>
                   <TouchableOpacity style={styles.dropdownBtn} onPress={() => { setShowCategoryDD(!showCategoryDD); setShowSplitDD(false); setShowAptDD(false); }}>
                     <Text style={styles.dropdownBtnText} numberOfLines={1}>{form.category}</Text>
@@ -411,7 +428,7 @@ const ExpensesScreen = () => {
                   <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
                 </View>
                 <View style={[styles.col, { zIndex: showSplitDD ? 400 : 150 }]}>
-                  {showSplitDD && <ScrollView style={[styles.dropdownMenu, { marginBottom: 4 }]} nestedScrollEnabled>
+                  {showSplitDD && <ScrollView style={[styles.dropdownMenu, styles.splitDropdownMenu]} nestedScrollEnabled showsVerticalScrollIndicator>
                     {SPLIT_TYPES.map((s) => <TouchableOpacity key={s.key} style={styles.dropdownItem} onPress={() => { setForm({ ...form, splitType: s.key, apartmentId: '' }); setSelectedAptIds([]); setShowSplitDD(false); }}>
                       <Text style={[styles.dropdownItemText, form.splitType === s.key && { color: theme.primary, fontWeight: '900' }]}>{s.label}</Text>
                     </TouchableOpacity>)}
@@ -538,13 +555,15 @@ const ExpensesScreen = () => {
               </View>
 
               <Text style={styles.label}>Category</Text>
-              <View style={styles.catRow}>
-                {CATEGORIES.map((c) => (
-                  <TouchableOpacity key={c} style={[styles.catBtn, templateForm.category === c && { backgroundColor: CATEGORY_COLORS[c] }]} onPress={() => setTemplateForm({ ...templateForm, category: c })}>
-                    <Text style={[styles.catText, templateForm.category === c && { color: theme.onPrimary }]}>{c}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <ScrollView style={styles.templateCategoryScroll} nestedScrollEnabled showsVerticalScrollIndicator>
+                <View style={styles.catRow}>
+                  {CATEGORIES.map((c) => (
+                    <TouchableOpacity key={c} style={[styles.catBtn, templateForm.category === c && { backgroundColor: CATEGORY_COLORS[c] || theme.primary }]} onPress={() => setTemplateForm({ ...templateForm, category: c })}>
+                      <Text style={[styles.catText, templateForm.category === c && { color: theme.onPrimary }]}>{c}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
               <View style={styles.statusRow}>
                 <TouchableOpacity style={[styles.catBtn, templateForm.isActive && styles.catActive]} onPress={() => setTemplateForm({ ...templateForm, isActive: !templateForm.isActive })}>
                   <Text style={[styles.catText, templateForm.isActive && { color: theme.onPrimary }]}>{templateForm.isActive ? 'Active' : 'Paused'}</Text>
@@ -601,9 +620,13 @@ const makeStyles = (theme: any) => StyleSheet.create({
   modalTitle: { color: theme.text, fontSize: 20, fontWeight: 'bold' },
   dropdownBtn: { backgroundColor: theme.chip, borderRadius: 8, padding: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, borderWidth: 1, borderColor: theme.border },
   dropdownBtnText: { color: theme.text, fontSize: 13, flex: 1, fontWeight: '600' },
-  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, maxHeight: 280, zIndex: 999, elevation: 10 },
-  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
-  dropdownItemText: { color: theme.text, fontSize: 13 },
+  dropdownMenu: { backgroundColor: theme.card, borderRadius: 8, borderWidth: 1, borderColor: theme.border, zIndex: 999, elevation: 10 },
+  categoryDropdownMenu: { height: 220, maxHeight: 220, marginBottom: 4 },
+  splitDropdownMenu: { maxHeight: 220, marginBottom: 4 },
+  categoryDropdownContent: { paddingBottom: 4 },
+  dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  dropdownItemText: { color: theme.text, fontSize: 13, flex: 1 },
+  dropdownItemTextActive: { color: theme.primary, fontWeight: '900' },
   aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
   aptSelectTitle: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 10 },
   aptEmptyText: { color: theme.muted, fontSize: 13, fontStyle: 'italic', marginBottom: 12 },
@@ -618,7 +641,8 @@ const makeStyles = (theme: any) => StyleSheet.create({
   input: { backgroundColor: theme.chip, borderRadius: 8, padding: 12, color: theme.text, marginBottom: 12, fontSize: 15 },
   twoCol: { flexDirection: 'row', gap: 10 },
   col: { flex: 1 },
-  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  catRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  templateCategoryScroll: { maxHeight: 180, marginBottom: 16 },
   statusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16, alignItems: 'center' },
   catBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.chip },
   catActive: { backgroundColor: theme.primary },

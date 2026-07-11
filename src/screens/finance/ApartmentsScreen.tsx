@@ -8,9 +8,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 
 interface Apartment {
   id: number;
@@ -61,8 +63,6 @@ const emptyForm = {
   status: 'ACTIVE',
   apartmentType: '',
 };
-
-const money = (value: any) => 'EGP ' + Number(value || 0).toLocaleString();
 
 const ApartmentsScreen = () => {
   const { theme } = useAppPreferences();
@@ -254,6 +254,7 @@ const ApartmentsScreen = () => {
   }, [apartments.length, expenses, payments, timelineApartment]);
 
   const exportApartments = async () => {
+    const villaName = await getActiveVillaName(villaId);
     try {
       const csv = await apiService.exportApartmentsCsv(villaId);
       await exportCsvContent('apartments.csv', csv);
@@ -271,11 +272,15 @@ const ApartmentsScreen = () => {
           a.currentBalance,
           a.apartmentType,
           a.createdAt,
-        ]));
+        ]),
+        { title: 'Apartments Report', villaName });
     }
   };
 
-  const renderItem = ({ item }: { item: Apartment }) => (
+  const renderItem = ({ item }: { item: Apartment }) => {
+    const balanceDue = Math.max(Number(item.currentBalance || 0), 0);
+    const isPaidUp = balanceDue === 0;
+    return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Text style={styles.unitNumber}>Apartment {item.apartmentNumber}</Text>
@@ -288,7 +293,7 @@ const ApartmentsScreen = () => {
       <Text style={styles.line}>Phone: {item.phoneNumber || '-'}</Text>
       <View style={styles.balanceRow}>
         <Text style={styles.opening}>Opening: {money(item.openingBalance)}</Text>
-        <Text style={[styles.balance, Number(item.currentBalance || 0) > 0 && styles.negative]}>Balance: {money(item.currentBalance)}</Text>
+        <Text style={[styles.balance, { color: isPaidUp ? PAID_COLOR : UNPAID_COLOR }]}>Balance: {money(balanceDue)}</Text>
       </View>
       <View style={styles.actions}>
         {permissions.canManageVilla ? <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity> : null}
@@ -300,7 +305,7 @@ const ApartmentsScreen = () => {
         </TouchableOpacity> : null}
       </View>
     </View>
-  );
+  );};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -386,8 +391,8 @@ const ApartmentsScreen = () => {
               <Text style={styles.statementTitle}>Apartment {statementApartment?.apartmentNumber}</Text>
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Allocated</Text><Text style={styles.summaryValue}>{money(statement?.allocated)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Paid</Text><Text style={[styles.summaryValue, { color: theme.primary }]}>{money(statement?.paid)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Balance</Text><Text style={[styles.summaryValue, { color: Number(statement?.balance || 0) > 0 ? theme.danger : theme.primary }]}>{money(statement?.balance)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Paid</Text><Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{money(statement?.paid)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Balance</Text><Text style={[styles.summaryValue, { color: Math.max(Number(statement?.balance || 0), 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(Number(statement?.balance || 0), 0))}</Text></View>
               </View>
               {statement?.rows.map((row, index) => (
                 <View key={index} style={styles.statementRow}>
@@ -457,8 +462,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   line: { color: theme.muted, fontSize: 13, marginBottom: 3 },
   balanceRow: { marginTop: 8, gap: 4 },
   opening: { color: theme.muted, fontSize: 13 },
-  balance: { color: theme.primary, fontSize: 15, fontWeight: '700' },
-  negative: { color: theme.danger },
+  balance: { fontSize: 15, fontWeight: '700' },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   smallBtn: { backgroundColor: theme.chip, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   smallBtnText: { color: theme.subtleText, fontSize: 12, fontWeight: '700' },
@@ -492,7 +496,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   statementDetail: { color: theme.text, fontSize: 13, fontWeight: '600' },
   statementDate: { color: theme.muted, fontSize: 11, marginTop: 2 },
   debit: { color: theme.danger, fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
-  credit: { color: theme.primary, fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
+  credit: { color: PAID_COLOR, fontSize: 12, fontWeight: '700', width: 82, textAlign: 'right' },
   notesBox: { borderWidth: 1, borderColor: '#065F46', borderStyle: 'dashed', borderRadius: 12, padding: 12, marginBottom: 16, backgroundColor: '#12342F' },
   notesLabel: { color: '#D1FAE5', fontWeight: '900', marginBottom: 4 },
   notesText: { color: theme.subtleText, lineHeight: 19 },

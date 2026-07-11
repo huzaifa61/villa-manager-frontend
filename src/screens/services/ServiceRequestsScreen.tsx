@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { apiService } from '../../services/api';
 import { exportCsv } from '../../utils/csv';
+import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { permissionsFor } from '../../utils/permissions';
 
@@ -119,17 +120,21 @@ export default function ServiceRequestsScreen() {
     ]);
   };
 
-  const exportRequests = () => exportCsv('service-requests.csv',
-    ['ID', 'Apartment', 'Description', 'Status', 'Vendor', 'Notes', 'Created At'],
-    requests.map((request) => [
-      request.id,
-      apartmentById[String(request.apartmentId)]?.apartmentNumber || request.apartmentId || '',
-      request.description,
-      request.status,
-      vendorById[String(request.vendorId)]?.name || '',
-      request.notes,
-      request.createdAt,
-    ]));
+  const exportRequests = async () => {
+    const villaName = await getActiveVillaName(villaId);
+    await exportCsv('service-requests.csv',
+      ['ID', 'Apartment', 'Description', 'Status', 'Vendor', 'Notes', 'Created At'],
+      requests.map((request) => [
+        request.id,
+        apartmentById[String(request.apartmentId)]?.apartmentNumber || request.apartmentId || '',
+        request.description,
+        request.status,
+        vendorById[String(request.vendorId)]?.name || '',
+        request.notes,
+        request.createdAt,
+      ]),
+      { title: 'Service Requests', villaName });
+  };
 
   const actionButton = (label: string, icon: IconName, onPress: () => void, primary = false) => (
     <TouchableOpacity style={[styles.button, primary && styles.primaryButton]} onPress={onPress}>

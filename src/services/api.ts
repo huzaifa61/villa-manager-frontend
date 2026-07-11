@@ -119,8 +119,8 @@ export const apiService = {
     const { data } = await api.get('/v1/villas/' + villaId + '/payments');
     return unwrap(data);
   },
-  createPayment: async (villaId: number, apartmentId: number, body: any) => {
-    const { data } = await api.post('/v1/villas/' + villaId + '/payments/apartment/' + apartmentId, body);
+  createPayment: async (villaId: number, body: any) => {
+    const { data } = await api.post('/v1/villas/' + villaId + '/payments', body);
     return unwrap(data);
   },
   updatePayment: async (villaId: number, paymentId: number, body: any) => {
