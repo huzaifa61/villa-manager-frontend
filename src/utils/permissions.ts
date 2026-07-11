@@ -26,6 +26,6 @@ export const permissionsFor = (user?: { role?: string } | null) => {
     canManageUsers: isGeneralManager || isVillaManager,
     canInviteRole: (nextRole: string) => isGeneralManager || (isVillaManager && nextRole === roles.VIEWER),
     canManageServiceRequests: isGeneralManager || isVillaManager,
-    canCreateServiceRequests: true,
+    canCreateServiceRequests: isGeneralManager || isVillaManager,
   };
 };

@@ -147,7 +147,7 @@ export default function ServiceRequestsScreen() {
         </View>
         <View style={styles.headerActions}>
           {actionButton('CSV', 'download-outline', exportRequests)}
-          {actionButton(showForm ? 'Close' : 'New', showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true)}
+          {permissions.canCreateServiceRequests ? actionButton(showForm ? 'Close' : 'New', showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}
         </View>
       </View>
 
@@ -157,7 +157,7 @@ export default function ServiceRequestsScreen() {
           <Text style={styles.noticeText}>After submitting, the admin can review your request, assign a provider, and update the status here.</Text>
         </View>
 
-        {showForm ? (
+        {showForm && permissions.canCreateServiceRequests ? (
           <View style={styles.panel}>
             <Text style={styles.panelTitle}>New Request</Text>
             <Text style={styles.label}>Category</Text>
@@ -211,7 +211,7 @@ export default function ServiceRequestsScreen() {
               <View style={styles.empty}>
                 <Ionicons name="construct-outline" size={42} color={theme.muted} />
                 <Text style={styles.emptyTitle}>No service requests yet.</Text>
-                <Text style={styles.emptyText}>Create a request for maintenance, cleaning, security, internet, or other villa support.</Text>
+                <Text style={styles.emptyText}>{permissions.canCreateServiceRequests ? 'Create a request for maintenance, cleaning, security, internet, or other villa support.' : 'Service requests will appear here once they are created.'}</Text>
               </View>
             ) : requests.map((request) => {
               const apartment = apartmentById[String(request.apartmentId)];

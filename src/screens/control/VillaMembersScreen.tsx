@@ -95,7 +95,12 @@ export default function VillaMembersScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const sortedMembers = useMemo(() => [...members].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))), [members]);
+  const sortedMembers = useMemo(() => {
+    const list = permissions.isVillaManager
+      ? members.filter((member) => member.role === appRoles.VIEWER && member.villaId === villaId)
+      : members;
+    return [...list].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }, [members, permissions.isVillaManager, villaId]);
 
   const needsVilla = VILLA_SCOPED_ROLES.includes(role);
 
@@ -298,7 +303,7 @@ export default function VillaMembersScreen() {
           {loading ? <ActivityIndicator color={theme.primary} style={{ marginVertical: 24 }} /> : sortedMembers.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="people-circle-outline" size={42} color={theme.muted} />
-              <Text style={styles.emptyText}>No villa members added yet.</Text>
+              <Text style={styles.emptyText}>{permissions.isVillaManager ? 'No viewers added yet.' : 'No villa members added yet.'}</Text>
             </View>
           ) : sortedMembers.map((member) => (
             <View key={member.id} style={styles.memberCard}>
