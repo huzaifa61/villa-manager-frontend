@@ -9,6 +9,7 @@ import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 
 const emptyVendor = { name: '', contactPerson: '', phoneNumber: '', email: '', address: '', serviceType: '', region: '', isActive: true };
 
@@ -114,17 +115,14 @@ export default function VendorsScreen() {
   };
 
   const deleteVendor = (vendor: any) => {
-    Alert.alert('Delete vendor?', vendor.name + ' will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await apiService.deleteVendor(vendor.id);
-          await fetchVendors();
-        },
+    confirmAction({
+      title: 'Delete vendor?',
+      message: vendor.name + ' will be removed.',
+      onConfirm: async () => {
+        await apiService.deleteVendor(vendor.id);
+        await fetchVendors();
       },
-    ]);
+    });
   };
 
   const exportVendors = async () => {

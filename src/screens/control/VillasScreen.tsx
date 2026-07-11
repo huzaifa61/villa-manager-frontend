@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
+import { confirmAction } from '../../utils/confirm';
 
 const EGYPT_REGIONS = [
   'Cairo', 'Giza', 'Alexandria', 'Aswan', 'Asyut', 'Beheira', 'Beni Suef',
@@ -102,16 +103,18 @@ export default function VillasScreen() {
   };
 
   const deleteVilla = (villa: any) => {
-    if (typeof window !== 'undefined' && window.confirm) {
-      if (window.confirm("Delete \"" + villa.name + "\" and all its data?")) {
-        apiService.deleteVilla(villa.id).then(loadData).catch((e: any) => showStatus('error', e?.response?.data?.message || e?.message));
-      }
-    } else {
-      Alert.alert('Delete property?', villa.name + ' will be removed.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => apiService.deleteVilla(villa.id).then(loadData).catch((e: any) => showStatus('error', e?.response?.data?.message || e?.message)) },
-      ]);
-    }
+    confirmAction({
+      title: 'Delete property?',
+      message: `"${villa.name}" and all its data will be removed.`,
+      onConfirm: async () => {
+        try {
+          await apiService.deleteVilla(villa.id);
+          await loadData();
+        } catch (e: any) {
+          showStatus('error', e?.response?.data?.message || e?.message);
+        }
+      },
+    });
   };
 
   const suspendVilla = async (villa: any) => {

@@ -7,6 +7,7 @@ import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor, roleLabel, roles as appRoles } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 
 const selectableRoles = [
   { label: 'General Manager', value: appRoles.GENERAL_MANAGER },
@@ -152,22 +153,18 @@ export default function VillaMembersScreen() {
   };
 
   const deleteMember = (member: any) => {
-    if (typeof window !== 'undefined') {
-      if (window.confirm(`Remove ${member.email} from this villa?`)) {
-        apiService.deleteUser(member.id).then(loadData).catch((e: any) => {
+    confirmAction({
+      title: 'Remove member?',
+      message: member.email + ' will be removed.',
+      onConfirm: async () => {
+        try {
+          await apiService.deleteUser(member.id);
+          await loadData();
+        } catch (e: any) {
           setInviteStatus({ type: 'error', text: e?.response?.data?.message || 'Could not delete user.' });
-        });
-      }
-    } else {
-      Alert.alert('Remove member?', member.email + ' will be removed.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => {
-          apiService.deleteUser(member.id).then(loadData).catch((e: any) => {
-            setInviteStatus({ type: 'error', text: e?.response?.data?.message || 'Could not delete user.' });
-          });
-        }},
-      ]);
-    }
+        }
+      },
+    });
   };
 
   const updateRole = async (member: any, nextRole: string) => {

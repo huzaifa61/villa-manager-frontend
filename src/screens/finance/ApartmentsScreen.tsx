@@ -12,6 +12,7 @@ import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 
 interface Apartment {
@@ -174,21 +175,18 @@ const ApartmentsScreen = () => {
   };
 
   const handleDelete = (apartment: Apartment) => {
-    Alert.alert('Delete Apartment', 'Delete ' + apartment.apartmentNumber + '?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiService.deleteApartment(villaId, apartment.id);
-            await fetchData();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete apartment');
-          }
-        },
+    confirmAction({
+      title: 'Delete Apartment',
+      message: 'Delete ' + apartment.apartmentNumber + '?',
+      onConfirm: async () => {
+        try {
+          await apiService.deleteApartment(villaId, apartment.id);
+          await fetchData();
+        } catch (e: any) {
+          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete apartment');
+        }
       },
-    ]);
+    });
   };
 
   const statement = useMemo(() => {

@@ -12,6 +12,7 @@ import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 import { money } from '../../utils/money';
 
 interface Expense {
@@ -200,21 +201,18 @@ const ExpensesScreen = () => {
   };
 
   const handleDelete = (expense: Expense) => {
-    Alert.alert('Delete Expense', 'Delete this expense?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiService.deleteExpense(villaId, expense.id);
-            await fetchData();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete expense');
-          }
-        },
+    confirmAction({
+      title: 'Delete Expense',
+      message: 'Delete this expense?',
+      onConfirm: async () => {
+        try {
+          await apiService.deleteExpense(villaId, expense.id);
+          await fetchData();
+        } catch (e: any) {
+          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete expense');
+        }
       },
-    ]);
+    });
   };
 
   const handleSaveTemplate = async () => {
@@ -250,21 +248,18 @@ const ExpensesScreen = () => {
   };
 
   const handleDeleteTemplate = (template: ExpenseTemplate) => {
-    Alert.alert('Delete Template', 'Delete ' + template.templateName + '?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiService.deleteExpenseTemplate(villaId, template.id);
-            await fetchData();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete template');
-          }
-        },
+    confirmAction({
+      title: 'Delete Template',
+      message: 'Delete ' + template.templateName + '?',
+      onConfirm: async () => {
+        try {
+          await apiService.deleteExpenseTemplate(villaId, template.id);
+          await fetchData();
+        } catch (e: any) {
+          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete template');
+        }
       },
-    ]);
+    });
   };
 
   const runDueTemplates = async () => {

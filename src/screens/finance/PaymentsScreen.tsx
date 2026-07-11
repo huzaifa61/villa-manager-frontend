@@ -12,6 +12,7 @@ import { money, isPaymentPaid, PAID_COLOR, UNPAID_COLOR } from '../../utils/mone
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 
 interface Payment {
   id: number;
@@ -175,21 +176,18 @@ const PaymentsScreen = () => {
   };
 
   const handleDelete = (payment: Payment) => {
-    Alert.alert('Delete Payment', 'Delete this payment?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await apiService.deletePayment(villaId, payment.id);
-            await fetchData();
-          } catch (e: any) {
-            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete payment');
-          }
-        },
+    confirmAction({
+      title: 'Delete Payment',
+      message: 'Delete this payment?',
+      onConfirm: async () => {
+        try {
+          await apiService.deletePayment(villaId, payment.id);
+          await fetchData();
+        } catch (e: any) {
+          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete payment');
+        }
       },
-    ]);
+    });
   };
 
   const exportPayments = async () => {

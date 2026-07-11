@@ -9,6 +9,7 @@ import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 
 const STORAGE_KEY = 'villa-documents-v1';
 const emptyDocument = { title: '', type: 'Receipt', link: '', renewalDate: '', notes: '' };
@@ -67,10 +68,11 @@ export default function DocumentsScreen() {
   };
 
   const deleteDocument = (doc: any) => {
-    Alert.alert('Delete document?', doc.title + ' will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => saveAll(documents.filter((item) => item.id !== doc.id)) },
-    ]);
+    confirmAction({
+      title: 'Delete document?',
+      message: doc.title + ' will be removed.',
+      onConfirm: () => saveAll(documents.filter((item) => item.id !== doc.id)),
+    });
   };
 
   const exportDocuments = async () => {

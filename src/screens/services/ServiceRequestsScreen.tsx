@@ -9,6 +9,7 @@ import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { permissionsFor } from '../../utils/permissions';
+import { confirmAction } from '../../utils/confirm';
 
 const VILLA_ID = 1;
 const categories = ['Electrician', 'Plumber', 'Carpenter', 'Painter', 'Pest Control', 'CCTV', 'Internet', 'Elevator', 'Pump', 'Generator', 'Cleaning', 'Gardener', 'Security', 'Porter', 'Legal / Admin', 'General Maintenance', 'Emergency', 'Other'];
@@ -107,17 +108,14 @@ export default function ServiceRequestsScreen() {
   };
 
   const removeRequest = (request: any) => {
-    Alert.alert('Delete request?', 'This service request will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          await apiService.deleteServiceRequest(villaId, request.id);
-          await fetchData();
-        },
+    confirmAction({
+      title: 'Delete request?',
+      message: 'This service request will be removed.',
+      onConfirm: async () => {
+        await apiService.deleteServiceRequest(villaId, request.id);
+        await fetchData();
       },
-    ]);
+    });
   };
 
   const exportRequests = async () => {
