@@ -6,13 +6,13 @@ import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
-import { permissionsFor, roleLabel, roles as appRoles } from '../../utils/permissions';
+import { permissionsFor, roleLabel, roles as appRoles, canDeleteMember } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
 
-const selectableRoles = [
-  { label: 'General Manager', value: appRoles.GENERAL_MANAGER },
-  { label: 'Villa Manager', value: appRoles.VILLA_MANAGER },
-  { label: 'Viewer', value: appRoles.VIEWER },
+const selectableRoles = (t: (key: string) => string) => [
+  { label: t('roleGeneralManager'), value: appRoles.GENERAL_MANAGER },
+  { label: t('roleVillaManager'), value: appRoles.VILLA_MANAGER },
+  { label: t('roleViewer'), value: appRoles.VIEWER },
 ];
 
 const roleGuides = [
@@ -52,7 +52,7 @@ const roleGuides = [
 const VILLA_SCOPED_ROLES = [appRoles.VILLA_MANAGER, appRoles.VIEWER];
 
 export default function VillaMembersScreen() {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
   const villaId = activeVillaId || user?.villaId || 1;
@@ -87,7 +87,7 @@ export default function VillaMembersScreen() {
         setSelectedVillaId(villaList[0].id);
       }
     } catch (e: any) {
-      setInviteStatus({ type: 'error', text: 'Could not load villa users.' });
+      setInviteStatus({ type: 'error', text: t('couldNotLoadUsers') });
       setMembers([]);
     } finally {
       setLoading(false);
@@ -154,14 +154,16 @@ export default function VillaMembersScreen() {
 
   const deleteMember = (member: any) => {
     confirmAction({
-      title: 'Remove member?',
-      message: member.email + ' will be removed.',
+      title: t('removeMemberTitle'),
+      message: `${member.email} ${t('removeMemberMessage')}`,
+      confirmText: t('remove'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         try {
           await apiService.deleteUser(member.id);
           await loadData();
         } catch (e: any) {
-          setInviteStatus({ type: 'error', text: e?.response?.data?.message || 'Could not delete user.' });
+          setInviteStatus({ type: 'error', text: e?.response?.data?.error || e?.response?.data?.message || t('couldNotDeleteUser') });
         }
       },
     });
@@ -205,19 +207,20 @@ export default function VillaMembersScreen() {
     }
   };
 
-  const availableRoles = selectableRoles.filter((item) => permissions.canInviteRole(item.value));
+  const availableRoles = selectableRoles(t).filter((item) => permissions.canInviteRole(item.value));
+  const rolesList = selectableRoles(t);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Villa Members</Text>
-        <Text style={styles.subtitle}>Invite people and choose what they can access.</Text>
+        <Text style={styles.title}>{t('villaMembersTitle')}</Text>
+        <Text style={styles.subtitle}>{t('villaMembersSubtitle')}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Ionicons name="person-add-outline" size={22} color={theme.primary} />
-            <Text style={styles.panelTitle}>Invite Member</Text>
+            <Text style={styles.panelTitle}>{t('inviteMember')}</Text>
           </View>
 
           {/* Status banner */}
@@ -227,9 +230,9 @@ export default function VillaMembersScreen() {
             </View>
           )}
 
-          <Text style={styles.label}>Full Name</Text>
-          <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder="Member name" placeholderTextColor={theme.muted} />
-          <Text style={styles.label}>Member Email *</Text>
+          <Text style={styles.label}>{t('fullName')}</Text>
+          <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholder={t('memberName')} placeholderTextColor={theme.muted} />
+          <Text style={styles.label}>{t('memberEmail')} *</Text>
           <TextInput
             style={[styles.input, errors.email ? styles.inputError : null]}
             value={email}
@@ -240,7 +243,7 @@ export default function VillaMembersScreen() {
             autoCapitalize="none"
           />
           {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-          <Text style={styles.label}>Role</Text>
+          <Text style={styles.label}>{t('role')}</Text>
           <View style={styles.roleRow}>
             {availableRoles.map((item) => (
               <TouchableOpacity key={item.value} style={[styles.roleChip, role === item.value && styles.roleChipActive]} onPress={() => setRole(item.value)}>
@@ -253,8 +256,8 @@ export default function VillaMembersScreen() {
           {needsVilla && (
             <View>
               <Text style={styles.label}>
-                Assign to Villa *
-                <Text style={styles.labelHint}> (required for {role === appRoles.VILLA_MANAGER ? 'Villa Manager' : 'Viewer'})</Text>
+                {t('assignToVilla')} *
+                <Text style={styles.labelHint}> ({t('required')} — {role === appRoles.VILLA_MANAGER ? t('roleVillaManager') : t('roleViewer')})</Text>
               </Text>
               {villas.length === 0 ? (
                 <View style={styles.noVillaBox}>
@@ -288,26 +291,26 @@ export default function VillaMembersScreen() {
             ) : (
               <Ionicons name="send-outline" size={17} color={theme.onPrimary} />
             )}
-            <Text style={styles.inviteText}>{inviting ? 'Sending...' : 'Send Invitation'}</Text>
+            <Text style={styles.inviteText}>{inviting ? t('sending') : t('sendInvitation')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.panel}>
           <View style={styles.panelHeader}>
             <Ionicons name="people-outline" size={22} color={theme.primary} />
-            <Text style={styles.panelTitle}>Members</Text>
+            <Text style={styles.panelTitle}>{t('members')}</Text>
           </View>
           {loading ? <ActivityIndicator color={theme.primary} style={{ marginVertical: 24 }} /> : sortedMembers.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="people-circle-outline" size={42} color={theme.muted} />
-              <Text style={styles.emptyText}>{permissions.isVillaManager ? 'No viewers added yet.' : 'No villa members added yet.'}</Text>
+              <Text style={styles.emptyText}>{permissions.isVillaManager ? t('noViewersYet') : t('noMembersYet')}</Text>
             </View>
           ) : sortedMembers.map((member) => (
             <View key={member.id} style={styles.memberCard}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.memberEmail}>{member.email}</Text>
                 <View style={styles.memberMetaRow}>
-                  <Text style={styles.memberMeta}>{roleLabel(member.role)}</Text>
+                  <Text style={styles.memberMeta}>{roleLabel(member.role, t)}</Text>
                   {member.villaId && (
                     <View style={styles.villaBadge}>
                       <Ionicons name="business-outline" size={11} color={theme.primary} />
@@ -319,19 +322,20 @@ export default function VillaMembersScreen() {
                   <Text style={styles.memberStatus}>{member.invitationStatus || (member.isActive ? 'ACTIVE' : 'INVITED')}</Text>
                 </View>
               </View>
-              {permissions.isGeneralManager ? <View style={styles.memberActions}>
-                {/* Role chips */}
+              {(permissions.isGeneralManager || canDeleteMember(user, member, villaId)) ? (
+              <View style={styles.memberActions}>
+                {permissions.isGeneralManager ? (
+                <>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {selectableRoles.map((item) => (
+                  {rolesList.map((item) => (
                     <TouchableOpacity key={item.value} style={[styles.roleChipSmall, member.role === item.value && styles.roleChipActive]} onPress={() => updateRole(member, item.value)}>
                       <Text style={[styles.roleTextSmall, member.role === item.value && styles.roleTextActive]}>{item.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
-                {/* Villa reassignment — shown for Villa Manager and Viewer */}
                 {VILLA_SCOPED_ROLES.includes(member.role) && villas.length > 0 && (
                   <View>
-                    <Text style={styles.reassignLabel}>Assigned Villa:</Text>
+                    <Text style={styles.reassignLabel}>{t('assignToVilla')}:</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                       <View style={styles.villaRow}>
                         {villas.map((villa) => (
@@ -352,12 +356,6 @@ export default function VillaMembersScreen() {
                     </ScrollView>
                   </View>
                 )}
-                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteMember(member)}>
-                  <Ionicons name="trash-outline" size={15} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
-                  <Text style={styles.deleteText}>Delete</Text>
-                </TouchableOpacity>
-
-                {/* Subscription controls — only for Villa Managers, editable by GM only */}
                 {member.role === appRoles.VILLA_MANAGER && (
                   <View style={styles.subSection}>
                     <View style={styles.subHeader}>
@@ -371,33 +369,39 @@ export default function VillaMembersScreen() {
                       </Text>
                       <Text style={styles.subViewers}>👥 Max viewers: {member.maxViewers || 5}</Text>
                     </View>
-                    {/* Edit/Revoke — General Manager only */}
-                    {permissions.isGeneralManager && (
-                      <View style={styles.subActions}>
-                        <TouchableOpacity
-                          style={styles.subBtn}
-                          onPress={() => setSubModal({
-                            member,
-                            expiresAt: member.subscriptionExpiresAt
-                              ? new Date(member.subscriptionExpiresAt).toISOString().split('T')[0]
-                              : '',
-                            maxViewers: String(member.maxViewers || 5),
-                          })}
-                        >
-                          <Ionicons name="create-outline" size={14} color={theme.primary} />
-                          <Text style={styles.subBtnText}>Set Subscription</Text>
+                    <View style={styles.subActions}>
+                      <TouchableOpacity
+                        style={styles.subBtn}
+                        onPress={() => setSubModal({
+                          member,
+                          expiresAt: member.subscriptionExpiresAt
+                            ? new Date(member.subscriptionExpiresAt).toISOString().split('T')[0]
+                            : '',
+                          maxViewers: String(member.maxViewers || 5),
+                        })}
+                      >
+                        <Ionicons name="create-outline" size={14} color={theme.primary} />
+                        <Text style={styles.subBtnText}>Set Subscription</Text>
+                      </TouchableOpacity>
+                      {member.subscriptionExpiresAt && !member.subscriptionExpired && (
+                        <TouchableOpacity style={[styles.subBtn, styles.subBtnRevoke]} onPress={() => revokeSubscription(member)}>
+                          <Ionicons name="ban-outline" size={14} color="#EF4444" />
+                          <Text style={[styles.subBtnText, { color: '#EF4444' }]}>Revoke</Text>
                         </TouchableOpacity>
-                        {member.subscriptionExpiresAt && !member.subscriptionExpired && (
-                          <TouchableOpacity style={[styles.subBtn, styles.subBtnRevoke]} onPress={() => revokeSubscription(member)}>
-                            <Ionicons name="ban-outline" size={14} color="#EF4444" />
-                            <Text style={[styles.subBtnText, { color: '#EF4444' }]}>Revoke</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-                    )}
+                      )}
+                    </View>
                   </View>
                 )}
-              </View> : null}
+                </>
+                ) : null}
+                {canDeleteMember(user, member, villaId) ? (
+                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteMember(member)}>
+                  <Ionicons name="trash-outline" size={15} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
+                  <Text style={styles.deleteText}>{t('delete')}</Text>
+                </TouchableOpacity>
+                ) : null}
+              </View>
+              ) : null}
             </View>
           ))}
         </View>

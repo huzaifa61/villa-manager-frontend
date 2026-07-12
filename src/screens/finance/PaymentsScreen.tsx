@@ -28,17 +28,23 @@ interface Payment {
 }
 
 const VILLA_ID = 1;
-const PAYMENT_METHODS = ['Cash', 'Bank Transfer', 'Instapay', 'Vodafone Cash', 'Other'];
+const PAYMENT_METHODS = [
+  { key: 'Cash', labelKey: 'cash' },
+  { key: 'Bank Transfer', labelKey: 'bankTransfer' },
+  { key: 'Instapay', labelKey: 'instapay' },
+  { key: 'Vodafone Cash', labelKey: 'vodafoneCash' },
+  { key: 'Other', labelKey: 'other' },
+];
 const SPLIT_TYPES = [
-  { key: 'ALL_EQUAL', label: 'All apartments — equal split' },
-  { key: 'SINGLE', label: 'Single apartment' },
-  { key: 'SELECTED_EQUAL', label: 'Selected apartments — equal split' },
-  { key: 'SELECTED_CUSTOM', label: 'Selected apartments — custom amounts' },
+  { key: 'ALL_EQUAL', labelKey: 'splitAllEqual' },
+  { key: 'SINGLE', labelKey: 'splitSingle' },
+  { key: 'SELECTED_EQUAL', labelKey: 'splitSelectedEqual' },
+  { key: 'SELECTED_CUSTOM', labelKey: 'splitSelectedCustom' },
 ];
 const emptyForm = { splitType: 'SINGLE', apartmentId: '', amount: '', paymentDate: new Date().toISOString().split('T')[0], paymentMethod: 'Cash', referenceNumber: '', notes: '', status: 'COMPLETED' };
 
 const PaymentsScreen = () => {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
   const villaId = activeVillaId || user?.villaId || 1;
@@ -117,19 +123,19 @@ const PaymentsScreen = () => {
 
   const handleSave = async () => {
     if (!form.amount) {
-      Alert.alert('Error', 'Amount is required');
+      Alert.alert(t('error'), t('amountRequired'));
       return;
     }
     if (form.splitType === 'SINGLE' && !form.apartmentId) {
-      Alert.alert('Error', 'Please select an apartment');
+      Alert.alert(t('error'), t('selectApartment'));
       return;
     }
     if ((form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && selectedAptIds.length === 0) {
-      Alert.alert('Error', 'Please select at least one apartment');
+      Alert.alert(t('error'), t('selectOneApartment'));
       return;
     }
     if (form.splitType === 'ALL_EQUAL' && apartments.length === 0) {
-      Alert.alert('Error', 'No apartments available to split this payment');
+      Alert.alert(t('error'), t('noAptsToSplit'));
       return;
     }
 
@@ -167,9 +173,9 @@ const PaymentsScreen = () => {
       }
       setModalVisible(false);
       await fetchData();
-      Alert.alert('Success', editing ? 'Payment updated' : 'Payment recorded');
+      Alert.alert(t('success'), editing ? t('paymentUpdated') : t('paymentRecorded'));
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Failed to save payment');
+      Alert.alert(t('error'), e?.response?.data?.error || e?.response?.data?.message || e?.message || t('failedSavePayment'));
     } finally {
       setSaving(false);
     }
@@ -177,14 +183,16 @@ const PaymentsScreen = () => {
 
   const handleDelete = (payment: Payment) => {
     confirmAction({
-      title: 'Delete Payment',
-      message: 'Delete this payment?',
+      title: t('deletePaymentTitle'),
+      message: t('deletePaymentMessage'),
+      confirmText: t('delete'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         try {
           await apiService.deletePayment(villaId, payment.id);
           await fetchData();
         } catch (e: any) {
-          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete payment');
+          Alert.alert(t('error'), e?.response?.data?.message || t('failedDeletePayment'));
         }
       },
     });
@@ -219,21 +227,21 @@ const PaymentsScreen = () => {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={{ flex: 1, paddingRight: 10 }}>
-          <Text style={styles.unit}>Apartment {item.apartmentNumber || (item.apartmentId ? item.apartmentId : 'All apartments')}</Text>
+          <Text style={styles.unit}>{t('apartment')} {item.apartmentNumber || (item.apartmentId ? item.apartmentId : t('allApartments'))}</Text>
           <Text style={styles.date}>{item.paymentDate || ''} • {item.paymentMethod || 'Cash'}</Text>
-          {item.referenceNumber ? <Text style={styles.notes}>Ref: {item.referenceNumber}</Text> : null}
+          {item.referenceNumber ? <Text style={styles.notes}>{t('ref')}: {item.referenceNumber}</Text> : null}
           {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
         </View>
         <View>
           <Text style={[styles.amount, { color: paid ? PAID_COLOR : UNPAID_COLOR }]}>{money(item.amount)}</Text>
           <View style={[styles.badge, { backgroundColor: paid ? PAID_COLOR : UNPAID_COLOR }]}>
-            <Text style={styles.badgeText}>{paid ? 'PAID' : 'NOT PAID'}</Text>
+            <Text style={styles.badgeText}>{paid ? t('paid') : t('notPaid')}</Text>
           </View>
         </View>
       </View>
       {permissions.canManageFinancials ? <View style={styles.actions}>
-        <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>{t('edit')}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>{t('delete')}</Text></TouchableOpacity>
       </View> : null}
     </View>
   );};
@@ -242,13 +250,13 @@ const PaymentsScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Payments ({filteredPayments.length})</Text>
-          <Text style={styles.total}>Collected: <Text style={{ color: PAID_COLOR }}>{money(totalPayments)}</Text></Text>
+          <Text style={styles.title}>{t('paymentsTitle')} ({filteredPayments.length})</Text>
+          <Text style={styles.total}>{t('collected')}: <Text style={{ color: PAID_COLOR }}>{money(totalPayments)}</Text></Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.exportBtn} onPress={exportPayments}>
             <Ionicons name="download-outline" size={17} color={theme.text} />
-            <Text style={styles.exportText}>CSV</Text>
+            <Text style={styles.exportText}>{t('csv')}</Text>
           </TouchableOpacity>
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={24} color={theme.onPrimary} />
@@ -258,15 +266,15 @@ const PaymentsScreen = () => {
 
       <View style={styles.searchWrap}>
         <Ionicons name="search" size={18} color={theme.muted} />
-        <TextInput style={styles.search} placeholder="Search payments..." placeholderTextColor={theme.muted} value={query} onChangeText={setQuery} />
+        <TextInput style={styles.search} placeholder={t('searchPayments')} placeholderTextColor={theme.muted} value={query} onChangeText={setQuery} />
       </View>
 
       {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> :
         filteredPayments.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="card-outline" size={60} color="#4B5563" />
-            <Text style={styles.emptyText}>{query ? 'No payments match your search' : 'No payments yet'}</Text>
-            {!query && permissions.canManageFinancials ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>Record Payment</Text></TouchableOpacity> : null}
+            <Text style={styles.emptyText}>{query ? t('noPaymentsSearch') : t('noPayments')}</Text>
+            {!query && permissions.canManageFinancials ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>{t('recordPayment')}</Text></TouchableOpacity> : null}
           </View>
         ) : <FlatList data={filteredPayments} renderItem={renderItem} keyExtractor={(i) => i.id.toString()} contentContainerStyle={{ padding: 16 }} />}
 
@@ -275,22 +283,22 @@ const PaymentsScreen = () => {
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editing ? 'Edit Payment' : 'Add Payment'}</Text>
+                <Text style={styles.modalTitle}>{editing ? t('editPayment') : t('addPayment')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={28} color={theme.muted} /></TouchableOpacity>
               </View>
 
               {!editing && <View style={styles.infoBanner}>
-                <Text style={styles.infoText}>Choose how this collected payment should be credited across apartments.</Text>
+                <Text style={styles.infoText}>{t('paymentInfo')}</Text>
               </View>}
 
               {/* Date + Amount */}
               <View style={styles.twoCol}>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Date *</Text>
+                  <Text style={styles.label}>{t('date')} *</Text>
                   <TextInput style={styles.input} value={form.paymentDate} onChangeText={(v) => setForm({ ...form, paymentDate: v })} placeholderTextColor="#9CA3AF" />
                 </View>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Amount (EGP) *</Text>
+                  <Text style={styles.label}>{t('amount')} (EGP) *</Text>
                   <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
                 </View>
               </View>
@@ -307,14 +315,14 @@ const PaymentsScreen = () => {
                           setCustomAmounts({});
                           setShowSplitDD(false);
                         }}>
-                          <Text style={[styles.dropdownItemText, form.splitType === split.key && { color: theme.primary, fontWeight: '900' }]}>{split.label}</Text>
+                          <Text style={[styles.dropdownItemText, form.splitType === split.key && { color: theme.primary, fontWeight: '900' }]}>{t(split.labelKey)}</Text>
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
                   )}
-                  <Text style={styles.label}>Split Type *</Text>
+                  <Text style={styles.label}>{t('splitType')} *</Text>
                   <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => { setShowSplitDD(!showSplitDD); setShowAptDD(false); setShowMethodDD(false); }}>
-                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find((split) => split.key === form.splitType)?.label || 'Select'}</Text>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find((split) => split.key === form.splitType) ? t(SPLIT_TYPES.find((split) => split.key === form.splitType)!.labelKey) : t('splitType')}</Text>
                     <Ionicons name={showSplitDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
                 </View>
@@ -322,7 +330,7 @@ const PaymentsScreen = () => {
 
               {form.splitType === 'ALL_EQUAL' && apartments.length > 0 && !!form.amount && (
                 <Text style={styles.splitPreview}>
-                  {apartments.length} apartment{apartments.length === 1 ? '' : 's'} — {money(Number(form.amount) / apartments.length)} each
+                  {t('splitPreview').replace('{count}', String(apartments.length)).replace('{amount}', money(Number(form.amount) / apartments.length))}
                 </Text>
               )}
 
@@ -332,14 +340,14 @@ const PaymentsScreen = () => {
 
               {(editing || form.splitType === 'SINGLE') && (
                 <View>
-                  <Text style={styles.label}>Apartment *</Text>
+                  <Text style={styles.label}>{t('apartment')} *</Text>
                   {apartments.length === 0 ? (
                     <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
                   ) : (
                     <>
                       <TouchableOpacity style={styles.dropdownBtn} onPress={() => !editing && setShowAptDD(!showAptDD)} disabled={!!editing}>
                         <Text style={styles.dropdownBtnText} numberOfLines={1}>
-                          {apartments.find((a) => String(a.id) === form.apartmentId) ? 'Apartment ' + apartments.find((a) => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}
+                          {apartments.find((a) => String(a.id) === form.apartmentId) ? `${t('apartment')} ${apartments.find((a) => String(a.id) === form.apartmentId)?.apartmentNumber}` : t('selectApartmentLabel')}
                         </Text>
                         {!editing && <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />}
                       </TouchableOpacity>
@@ -347,7 +355,7 @@ const PaymentsScreen = () => {
                         <View style={styles.dropdownMenu}>
                           {apartments.map((a) => (
                             <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
-                              <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                              <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>{t('apartment')} {a.apartmentNumber}</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
@@ -391,23 +399,23 @@ const PaymentsScreen = () => {
               )}
 
               {/* Method */}
-              <Text style={styles.label}>Method</Text>
+              <Text style={styles.label}>{t('method')}</Text>
               <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowMethodDD(!showMethodDD)}>
-                <Text style={styles.dropdownBtnText}>{form.paymentMethod}</Text>
+                <Text style={styles.dropdownBtnText}>{PAYMENT_METHODS.find((m) => m.key === form.paymentMethod) ? t(PAYMENT_METHODS.find((m) => m.key === form.paymentMethod)!.labelKey) : form.paymentMethod}</Text>
                 <Ionicons name={showMethodDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
               </TouchableOpacity>
               {showMethodDD && <View style={styles.dropdownMenu}>
-                {PAYMENT_METHODS.map((m) => <TouchableOpacity key={m} style={styles.dropdownItem} onPress={() => { setForm({ ...form, paymentMethod: m }); setShowMethodDD(false); }}>
-                  <Text style={[styles.dropdownItemText, form.paymentMethod === m && { color: theme.primary, fontWeight: '900' }]}>{m}</Text>
+                {PAYMENT_METHODS.map((m) => <TouchableOpacity key={m.key} style={styles.dropdownItem} onPress={() => { setForm({ ...form, paymentMethod: m.key }); setShowMethodDD(false); }}>
+                  <Text style={[styles.dropdownItemText, form.paymentMethod === m.key && { color: theme.primary, fontWeight: '900' }]}>{t(m.labelKey)}</Text>
                 </TouchableOpacity>)}
               </View>}
 
               {/* Notes */}
-              <Text style={styles.label}>Notes</Text>
+              <Text style={styles.label}>{t('notes')}</Text>
               <TextInput style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]} placeholder="Optional notes..." placeholderTextColor="#9CA3AF" value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} multiline />
 
               <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>Save</Text>}
+                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{t('save')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>

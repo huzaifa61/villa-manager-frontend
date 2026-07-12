@@ -8,6 +8,7 @@ import { logoutUser, setActiveVillaId } from '../../store/slices/authSlice';
 import { fetchUnreadCount } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
+import { roleLabel } from '../../utils/permissions';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -66,9 +67,9 @@ export default function DashboardScreen({ navigation }: any) {
   };
 
   const cards = [
-    { label: 'Total Units', value: String(stats.apts), icon: 'home-outline' as IconName, color: theme.secondary, nav: 'Apartments' },
-    { label: 'Occupied', value: String(stats.occupied), icon: 'people-outline' as IconName, color: theme.primary, nav: 'Apartments' },
-    { label: 'Collected', value: 'EGP ' + stats.collected.toLocaleString(), icon: 'cash-outline' as IconName, color: theme.primary, nav: 'Payments' },
+    { label: t('totalUnits'), value: String(stats.apts), icon: 'home-outline' as IconName, color: theme.secondary, nav: 'Apartments' },
+    { label: t('occupied'), value: String(stats.occupied), icon: 'people-outline' as IconName, color: theme.primary, nav: 'Apartments' },
+    { label: t('collected'), value: 'EGP ' + stats.collected.toLocaleString(), icon: 'cash-outline' as IconName, color: theme.primary, nav: 'Payments' },
     { label: t('expenses'), value: 'EGP ' + stats.expenses.toLocaleString(), icon: 'receipt-outline' as IconName, color: theme.danger, nav: 'Expenses' },
   ];
 
@@ -77,16 +78,16 @@ export default function DashboardScreen({ navigation }: any) {
       {/* HEADER */}
       <View style={s.header}>
         <View style={{ flex: 1 }}>
-          <Text style={s.welcome}>Welcome back</Text>
-          <Text style={s.name}>{user?.fullName || user?.email || 'Manager'}</Text>
-          <Text style={s.role}>{user?.role || 'GENERAL_MANAGER'}</Text>
+          <Text style={s.welcome}>{t('welcomeBack')}</Text>
+          <Text style={s.name}>{user?.fullName || user?.email || t('manager')}</Text>
+          <Text style={s.role}>{roleLabel(user?.role, t)}</Text>
         </View>
         {/* Villa switcher */}
         <TouchableOpacity style={s.villaSwitcher} onPress={() => setShowVillaPicker(true)}>
           <View style={s.villaSwitcherInner}>
             <Ionicons name="business-outline" size={14} color={theme.primary} />
             <Text style={s.villaSwitcherText} numberOfLines={1}>
-              {activeVilla ? activeVilla.name : 'Select Villa'}
+              {activeVilla ? activeVilla.name : t('selectVilla')}
             </Text>
             <Ionicons name="chevron-down" size={12} color={theme.muted} />
           </View>
@@ -108,7 +109,7 @@ export default function DashboardScreen({ navigation }: any) {
       <Modal visible={showVillaPicker} transparent animationType="slide">
         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowVillaPicker(false)}>
           <View style={s.modalSheet}>
-            <Text style={s.modalTitle}>Switch Property</Text>
+            <Text style={s.modalTitle}>{t('switchProperty')}</Text>
             {villas.map((villa) => (
               <TouchableOpacity key={villa.id} style={[s.villaPickerItem, villa.id === villaId && s.villaPickerItemActive]} onPress={() => switchVilla(villa)}>
                 <View style={s.villaPickerLeft}>
@@ -127,7 +128,7 @@ export default function DashboardScreen({ navigation }: any) {
                 navigation.navigate('Villas' as never);
               }}>
                 <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
-                <Text style={s.addVillaBtnText}>Add New Property</Text>
+                <Text style={s.addVillaBtnText}>{t('addNewProperty')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -137,7 +138,7 @@ export default function DashboardScreen({ navigation }: any) {
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> : (
           <>
-            <Text style={s.section}>Overview</Text>
+            <Text style={s.section}>{t('overview')}</Text>
             <View style={s.grid}>
               {cards.map((c) => (
                 <TouchableOpacity key={c.label} style={s.card} onPress={() => navigation.navigate(c.nav)}>
@@ -148,13 +149,13 @@ export default function DashboardScreen({ navigation }: any) {
               ))}
             </View>
 
-            <Text style={s.section}>Quick Actions</Text>
+            <Text style={s.section}>{t('quickActions')}</Text>
             <View style={s.actions}>
               {[
                 { label: t('apartments'), icon: 'home' as IconName, color: theme.secondary, nav: 'Apartments' },
                 { label: t('payments'), icon: 'card' as IconName, color: theme.primary, nav: 'Payments' },
                 { label: t('expenses'), icon: 'receipt' as IconName, color: theme.danger, nav: 'Expenses' },
-                ...(user?.role === 'GENERAL_MANAGER' ? [{ label: 'Properties', icon: 'business' as IconName, color: '#8B5CF6', nav: 'Villas' }] : []),
+                ...(user?.role === 'GENERAL_MANAGER' ? [{ label: t('properties'), icon: 'business' as IconName, color: '#8B5CF6', nav: 'Villas' }] : []),
               ].map((a) => (
                 <TouchableOpacity key={a.label} style={s.actionBtn} onPress={() => {
                   navigation.navigate(a.nav as never);

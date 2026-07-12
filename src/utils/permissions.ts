@@ -4,10 +4,24 @@ export const roles = {
   VIEWER: 'VIEWER',
 } as const;
 
-export const roleLabel = (role?: string) => {
-  if (role === roles.GENERAL_MANAGER) return 'General Manager';
-  if (role === roles.VILLA_MANAGER) return 'Villa Manager';
-  return 'Viewer';
+export const roleLabel = (role?: string, t?: (key: string) => string) => {
+  if (role === roles.GENERAL_MANAGER) return t?.('roleGeneralManager') || 'General Manager';
+  if (role === roles.VILLA_MANAGER) return t?.('roleVillaManager') || 'Villa Manager';
+  return t?.('roleViewer') || 'Viewer';
+};
+
+export const canDeleteMember = (
+  currentUser: { id?: number; role?: string; villaId?: number | null } | null | undefined,
+  member: { id?: number; role?: string; villaId?: number | null },
+  villaId: number,
+) => {
+  const permissions = permissionsFor(currentUser);
+  if (member.id && currentUser?.id === member.id) return false;
+  if (permissions.isGeneralManager) return true;
+  if (permissions.isVillaManager) {
+    return member.role === roles.VIEWER && member.villaId === villaId;
+  }
+  return false;
 };
 
 export const permissionsFor = (user?: { role?: string } | null) => {
