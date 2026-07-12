@@ -10,7 +10,7 @@ const sections = [
       'Villa Manager Pro manages villas, apartments, shared expenses, payments, maintenance, service requests, reports, backups, users, and the provider directory.',
       'Master Admin approves paying Villa Admins, manages users, manages global service providers, and dispatches service requests.',
       'Villa Admin creates and manages one villa, apartments, expenses, payments, vendors, maintenance, documents, and viewers.',
-      'Viewer can read villa information, balances, reports, and service status, but cannot edit data.',
+      'Viewer can read villa information, balances, reports, and service status, submit service requests, but cannot edit other data.',
     ],
   },
   {
@@ -18,7 +18,7 @@ const sections = [
     body: [
       'Master Admin can activate, deactivate, and delete users, manage provider contacts, and review admin-only service workflows.',
       'Villa Admin can manage only their own villa and invite or manage viewers for that villa.',
-      'Viewer can view linked villa data and cannot add, edit, delete, reset, restore, or manage members.',
+      'Viewer can view linked villa data and submit service requests, but cannot edit, delete, reset, restore, or manage members.',
     ],
   },
   {
