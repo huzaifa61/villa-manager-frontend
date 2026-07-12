@@ -169,7 +169,7 @@ const PaymentsScreen = () => {
       await fetchData();
       Alert.alert('Success', editing ? 'Payment updated' : 'Payment recorded');
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Failed to save payment');
+      Alert.alert('Error', e?.response?.data?.error || e?.response?.data?.message || e?.message || 'Failed to save payment');
     } finally {
       setSaving(false);
     }
@@ -320,6 +320,12 @@ const PaymentsScreen = () => {
                 </View>
               )}
 
+              {form.splitType === 'ALL_EQUAL' && apartments.length > 0 && !!form.amount && (
+                <Text style={styles.splitPreview}>
+                  {apartments.length} apartment{apartments.length === 1 ? '' : 's'} — {money(Number(form.amount) / apartments.length)} each
+                </Text>
+              )}
+
               {form.splitType === 'ALL_EQUAL' && apartments.length === 0 && (
                 <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
               )}
@@ -455,6 +461,7 @@ const makeStyles = (theme: any) => StyleSheet.create({
   dropdownItem: { paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border },
   dropdownItemText: { color: theme.text, fontSize: 13 },
   splitSection: { marginBottom: 4 },
+  splitPreview: { color: theme.primary, fontSize: 13, fontWeight: '700', marginBottom: 10 },
   aptSelectBox: { backgroundColor: theme.chip, borderRadius: 10, borderWidth: 1, borderColor: theme.border, padding: 12, marginBottom: 12 },
   aptSelectTitle: { color: theme.muted, fontSize: 12, fontWeight: '800', marginBottom: 10 },
   aptEmptyText: { color: theme.muted, fontSize: 13, fontStyle: 'italic', marginBottom: 12 },
