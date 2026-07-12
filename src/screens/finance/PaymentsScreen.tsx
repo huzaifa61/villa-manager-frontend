@@ -385,7 +385,7 @@ const PaymentsScreen = () => {
                         {form.splitType === 'SELECTED_CUSTOM' && (
                           <TextInput
                             style={styles.customAmtInput}
-                            placeholder="Custom amount"
+                            placeholder={t('customAmount')}
                             placeholderTextColor="#9CA3AF"
                             value={customAmounts[a.id] || ''}
                             onChangeText={(v) => setCustomAmounts({ ...customAmounts, [a.id]: v })}
@@ -412,7 +412,7 @@ const PaymentsScreen = () => {
 
               {/* Notes */}
               <Text style={styles.label}>{t('notes')}</Text>
-              <TextInput style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]} placeholder="Optional notes..." placeholderTextColor="#9CA3AF" value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} multiline />
+              <TextInput style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]} placeholder={t('optionalNotes')} placeholderTextColor="#9CA3AF" value={form.notes} onChangeText={(v) => setForm({ ...form, notes: v })} multiline />
 
               <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
                 {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{t('save')}</Text>}

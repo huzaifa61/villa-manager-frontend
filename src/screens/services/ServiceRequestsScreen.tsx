@@ -10,6 +10,7 @@ import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
+import { translateEnum } from '../../i18n/helpers';
 
 const VILLA_ID = 1;
 const categories = ['Electrician', 'Plumber', 'Carpenter', 'Painter', 'Pest Control', 'CCTV', 'Internet', 'Elevator', 'Pump', 'Generator', 'Cleaning', 'Gardener', 'Security', 'Porter', 'Legal / Admin', 'General Maintenance', 'Emergency', 'Other'];
@@ -28,7 +29,7 @@ const initialForm = {
 };
 
 export default function ServiceRequestsScreen() {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const styles = makeStyles(theme);
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
@@ -73,7 +74,7 @@ export default function ServiceRequestsScreen() {
 
   const saveRequest = async () => {
     if (!form.description.trim()) {
-      Alert.alert('Description required', 'Please describe the service request.');
+      Alert.alert(t('descriptionRequired'), t('describeServiceRequest'));
       return;
     }
     try {
@@ -86,7 +87,7 @@ export default function ServiceRequestsScreen() {
       setShowForm(false);
       await fetchData();
     } catch (error: any) {
-      Alert.alert('Could not save', error?.response?.data?.error || error?.message || 'Please try again.');
+      Alert.alert(t('couldNotSave'), error?.response?.data?.error || error?.message || t('pleaseTryAgain'));
     } finally {
       setSaving(false);
     }
@@ -103,14 +104,16 @@ export default function ServiceRequestsScreen() {
       });
       await fetchData();
     } catch (error: any) {
-      Alert.alert('Could not update', error?.response?.data?.error || error?.message || 'Please try again.');
+      Alert.alert(t('couldNotUpdate'), error?.response?.data?.error || error?.message || t('pleaseTryAgain'));
     }
   };
 
   const removeRequest = (request: any) => {
     confirmAction({
-      title: 'Delete request?',
-      message: 'This service request will be removed.',
+      title: t('deleteRequestTitle'),
+      message: t('deleteRequestMessage'),
+      confirmText: t('delete'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         await apiService.deleteServiceRequest(villaId, request.id);
         await fetchData();
@@ -131,7 +134,7 @@ export default function ServiceRequestsScreen() {
         request.notes,
         request.createdAt,
       ]),
-      { title: 'Service Requests', villaName });
+      { title: t('serviceRequests'), villaName });
   };
 
   const actionButton = (label: string, icon: IconName, onPress: () => void, primary = false) => (
@@ -145,65 +148,65 @@ export default function ServiceRequestsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Service Requests</Text>
-          <Text style={styles.subtitle}>Submit requests and track admin dispatch.</Text>
+          <Text style={styles.title}>{t('serviceRequests')}</Text>
+          <Text style={styles.subtitle}>{t('serviceSubtitle')}</Text>
         </View>
         <View style={styles.headerActions}>
-          {actionButton('CSV', 'download-outline', exportRequests)}
-          {permissions.canCreateServiceRequests ? actionButton(showForm ? 'Close' : 'New', showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}
+          {actionButton(t('csv'), 'download-outline', exportRequests)}
+          {permissions.canCreateServiceRequests ? actionButton(showForm ? t('close') : t('newRequest'), showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.notice}>
           <Ionicons name="information-circle-outline" size={18} color="#60A5FA" />
-          <Text style={styles.noticeText}>After submitting, the admin can review your request, assign a provider, and update the status here.</Text>
+          <Text style={styles.noticeText}>{t('serviceNotice')}</Text>
         </View>
 
         {showForm && permissions.canCreateServiceRequests ? (
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>New Request</Text>
-            <Text style={styles.label}>Category</Text>
+            <Text style={styles.panelTitle}>{t('newRequest')}</Text>
+            <Text style={styles.label}>{t('category')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.choiceRow}>
               {categories.map((category) => (
                 <TouchableOpacity key={category} style={[styles.choice, form.category === category && styles.choiceActive]} onPress={() => setForm({ ...form, category })}>
-                  <Text style={[styles.choiceText, form.category === category && styles.choiceTextActive]}>{category}</Text>
+                  <Text style={[styles.choiceText, form.category === category && styles.choiceTextActive]}>{translateEnum(t, 'svc', category)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <Text style={styles.label}>Urgency</Text>
+            <Text style={styles.label}>{t('urgency')}</Text>
             <View style={styles.inlineChoices}>
               {urgencies.map((urgency) => (
                 <TouchableOpacity key={urgency} style={[styles.choice, form.urgency === urgency && styles.choiceActive]} onPress={() => setForm({ ...form, urgency })}>
-                  <Text style={[styles.choiceText, form.urgency === urgency && styles.choiceTextActive]}>{urgency}</Text>
+                  <Text style={[styles.choiceText, form.urgency === urgency && styles.choiceTextActive]}>{translateEnum(t, 'urgency', urgency)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <Text style={styles.label}>Apartment</Text>
+            <Text style={styles.label}>{t('apartment')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.choiceRow}>
               <TouchableOpacity style={[styles.choice, !form.apartmentId && styles.choiceActive]} onPress={() => setForm({ ...form, apartmentId: '' })}>
-                <Text style={[styles.choiceText, !form.apartmentId && styles.choiceTextActive]}>Not specific</Text>
+                <Text style={[styles.choiceText, !form.apartmentId && styles.choiceTextActive]}>{t('notSpecific')}</Text>
               </TouchableOpacity>
               {apartments.map((apartment) => (
                 <TouchableOpacity key={apartment.id} style={[styles.choice, form.apartmentId === String(apartment.id) && styles.choiceActive]} onPress={() => setForm({ ...form, apartmentId: String(apartment.id) })}>
-                  <Text style={[styles.choiceText, form.apartmentId === String(apartment.id) && styles.choiceTextActive]}>Apt {apartment.apartmentNumber}</Text>
+                  <Text style={[styles.choiceText, form.apartmentId === String(apartment.id) && styles.choiceTextActive]}>{t('apt')} {apartment.apartmentNumber}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
-            <Text style={styles.label}>Description</Text>
-            <TextInput style={[styles.input, styles.textarea]} value={form.description} onChangeText={(description) => setForm({ ...form, description })} placeholder="Describe the issue" placeholderTextColor={theme.muted} multiline />
+            <Text style={styles.label}>{t('description')}</Text>
+            <TextInput style={[styles.input, styles.textarea]} value={form.description} onChangeText={(description) => setForm({ ...form, description })} placeholder={t('describeIssue')} placeholderTextColor={theme.muted} multiline />
 
-            <Text style={styles.label}>Preferred Contact</Text>
-            <TextInput style={styles.input} value={form.preferredContact} onChangeText={(preferredContact) => setForm({ ...form, preferredContact })} placeholder="Phone, WhatsApp, or email" placeholderTextColor={theme.muted} />
+            <Text style={styles.label}>{t('preferredContact')}</Text>
+            <TextInput style={styles.input} value={form.preferredContact} onChangeText={(preferredContact) => setForm({ ...form, preferredContact })} placeholder={t('contactPlaceholder')} placeholderTextColor={theme.muted} />
 
-            <Text style={styles.label}>Notes</Text>
-            <TextInput style={[styles.input, styles.textareaSmall]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder="Optional access notes" placeholderTextColor={theme.muted} multiline />
+            <Text style={styles.label}>{t('notes')}</Text>
+            <TextInput style={[styles.input, styles.textareaSmall]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder={t('accessNotes')} placeholderTextColor={theme.muted} multiline />
 
             <TouchableOpacity style={[styles.saveButton, saving && styles.disabled]} onPress={saveRequest} disabled={saving}>
-              <Text style={styles.saveText}>{saving ? 'Saving...' : 'Save Request'}</Text>
+              <Text style={styles.saveText}>{saving ? t('saving') : t('saveRequest')}</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -213,8 +216,8 @@ export default function ServiceRequestsScreen() {
             {requests.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="construct-outline" size={42} color={theme.muted} />
-                <Text style={styles.emptyTitle}>No service requests yet.</Text>
-                <Text style={styles.emptyText}>{permissions.canCreateServiceRequests ? 'Create a request for maintenance, cleaning, security, internet, or other villa support.' : 'Service requests will appear here once they are created.'}</Text>
+                <Text style={styles.emptyTitle}>{t('noServiceRequests')}</Text>
+                <Text style={styles.emptyText}>{permissions.canCreateServiceRequests ? t('createServiceHint') : t('serviceAppearHint')}</Text>
               </View>
             ) : requests.map((request) => {
               const apartment = apartmentById[String(request.apartmentId)];
@@ -224,20 +227,20 @@ export default function ServiceRequestsScreen() {
                   <View style={styles.cardTop}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.cardTitle}>{request.description}</Text>
-                      <Text style={styles.muted}>Apt {apartment?.apartmentNumber || request.apartmentId} • {vendor?.name || 'Provider not assigned'}</Text>
+                      <Text style={styles.muted}>{t('apt')} {apartment?.apartmentNumber || request.apartmentId} • {vendor?.name || t('providerNotAssigned')}</Text>
                     </View>
-                    <Text style={[styles.badge, request.status === 'COMPLETED' && styles.doneBadge]}>{String(request.status || 'OPEN').replace('_', ' ')}</Text>
+                    <Text style={[styles.badge, request.status === 'COMPLETED' && styles.doneBadge]}>{translateEnum(t, 'req_status', String(request.status || 'OPEN'))}</Text>
                   </View>
                   {request.notes ? <Text style={styles.notes}>{request.notes}</Text> : null}
                   {permissions.canManageServiceRequests ? <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.statusRow}>
                     {statuses.map((status) => (
                       <TouchableOpacity key={status} style={[styles.smallChoice, request.status === status && styles.choiceActive]} onPress={() => updateStatus(request, status)}>
-                        <Text style={[styles.choiceText, request.status === status && styles.choiceTextActive]}>{status.replace('_', ' ')}</Text>
+                        <Text style={[styles.choiceText, request.status === status && styles.choiceTextActive]}>{translateEnum(t, 'req_status', status)}</Text>
                       </TouchableOpacity>
                     ))}
                     <TouchableOpacity style={styles.deleteChip} onPress={() => removeRequest(request)}>
                       <Ionicons name="trash-outline" size={14} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
-                      <Text style={styles.deleteText}>Delete</Text>
+                      <Text style={styles.deleteText}>{t('delete')}</Text>
                     </TouchableOpacity>
                   </ScrollView> : null}
                 </View>

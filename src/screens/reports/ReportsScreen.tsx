@@ -7,14 +7,12 @@ import { RootState } from '../../store';
 import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
 import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
-
-const VILLA_ID = 1;
-const CATEGORIES = ['Maintenance', 'Utilities', 'Cleaning', 'Security', 'Management', 'Other'];
+import { formatT, translateEnum, translateExpenseCategory } from '../../i18n/helpers';
 
 type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
 
 export default function ReportsScreen() {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const villaId = activeVillaId || user?.villaId || 1;
   const styles = makeStyles(theme);
@@ -79,72 +77,72 @@ export default function ReportsScreen() {
 
   const ledgerRows = useMemo(() => {
     const rows = [
-      ...expenses.map((e) => ({ date: e.expenseDate || '', type: 'Expense', detail: e.description || 'Expense', amount: -Number(e.amount || 0) })),
-      ...payments.map((p) => ({ date: p.paymentDate || '', type: 'Payment', detail: 'Apartment ' + (p.apartmentNumber || p.apartmentId), amount: Number(p.amount || 0) })),
+      ...expenses.map((e) => ({ date: e.expenseDate || '', type: 'Expense', detail: e.description || t('typeExpense'), amount: -Number(e.amount || 0) })),
+      ...payments.map((p) => ({ date: p.paymentDate || '', type: 'Payment', detail: `${t('apartment')} ${p.apartmentNumber || p.apartmentId}`, amount: Number(p.amount || 0) })),
     ].sort((a, b) => a.date.localeCompare(b.date));
     let running = 0;
     return rows.map((row) => {
       running += row.amount;
       return { ...row, running };
     });
-  }, [expenses, payments]);
+  }, [expenses, payments, t]);
 
   const monthlyRows = useMemo(() => {
     const byMonth: Record<string, { month: string; expenses: number; collected: number }> = {};
     expenses.forEach((e) => {
-      const key = String(e.expenseDate || '').slice(0, 7) || 'No date';
+      const key = String(e.expenseDate || '').slice(0, 7) || t('noDate');
       byMonth[key] = byMonth[key] || { month: key, expenses: 0, collected: 0 };
       byMonth[key].expenses += Number(e.amount || 0);
     });
     payments.forEach((p) => {
-      const key = String(p.paymentDate || '').slice(0, 7) || 'No date';
+      const key = String(p.paymentDate || '').slice(0, 7) || t('noDate');
       byMonth[key] = byMonth[key] || { month: key, expenses: 0, collected: 0 };
       if (p.status === 'COMPLETED' || p.status === 'PAID') byMonth[key].collected += Number(p.amount || 0);
     });
     return Object.values(byMonth).sort((a, b) => a.month.localeCompare(b.month));
-  }, [expenses, payments]);
+  }, [expenses, payments, t]);
 
   const categoryRows = useMemo(() => {
     const byCategory: Record<string, number> = {};
     expenses.forEach((e) => {
-      const label = e.categoryName || CATEGORIES[(e.categoryId || 1) - 1] || 'Maintenance';
+      const label = translateExpenseCategory(t, e.categoryName || 'Other');
       byCategory[label] = (byCategory[label] || 0) + Number(e.amount || 0);
     });
     return Object.entries(byCategory).map(([category, amount]) => ({ category, amount }));
-  }, [expenses]);
+  }, [expenses, t]);
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'balance', label: 'Balance Sheet' },
-    { key: 'ledger', label: 'Full Ledger' },
-    { key: 'monthly', label: 'Monthly' },
-    { key: 'category', label: 'Category' },
+  const tabs: { key: Tab; labelKey: string }[] = [
+    { key: 'balance', labelKey: 'tabBalance' },
+    { key: 'ledger', labelKey: 'tabLedger' },
+    { key: 'monthly', labelKey: 'tabMonthly' },
+    { key: 'category', labelKey: 'tabCategory' },
   ];
 
   const reportData = () => {
     if (activeTab === 'ledger') {
       return {
         filename: 'ledger-report.csv',
-        headers: ['Date', 'Type', 'Detail', 'Amount', 'Running Balance'],
-        rows: ledgerRows.map((row) => [row.date, row.type, row.detail, row.amount, row.running]),
+        headers: [t('date'), t('category'), t('description'), t('amount'), t('running')],
+        rows: ledgerRows.map((row) => [row.date, typeLabel(row.type), row.detail, row.amount, row.running]),
       };
     }
     if (activeTab === 'monthly') {
       return {
         filename: 'monthly-report.csv',
-        headers: ['Month', 'Expenses', 'Collected', 'Balance'],
+        headers: [t('month'), t('expenses'), t('collected'), t('balance')],
         rows: monthlyRows.map((row) => [row.month, row.expenses, row.collected, row.collected - row.expenses]),
       };
     }
     if (activeTab === 'category') {
       return {
         filename: 'category-report.csv',
-        headers: ['Category', 'Amount'],
+        headers: [t('category'), t('amount')],
         rows: categoryRows.map((row) => [row.category, row.amount]),
       };
     }
     return {
       filename: 'balance-report.csv',
-      headers: ['Apartment', 'Owner', 'Opening', 'Allocated', 'Paid', 'Balance'],
+      headers: [t('apartment'), t('owner'), t('opening'), t('allocated'), t('paid'), t('balance')],
       rows: balanceRows.map((row) => [row.apartment, row.owner, row.opening, row.allocated, row.paid, row.balance]),
     };
   };
@@ -152,7 +150,7 @@ export default function ReportsScreen() {
   const exportReport = async () => {
     const data = reportData();
     const villaName = await getActiveVillaName(villaId);
-    await exportCsv(data.filename, data.headers, data.rows, { title: 'Reports', villaName });
+    await exportCsv(data.filename, data.headers, data.rows, { title: t('reportsTitle'), villaName });
   };
 
   const printReport = async () => {
@@ -163,29 +161,31 @@ export default function ReportsScreen() {
     await exportReport();
   };
 
+  const typeLabel = (type: string) => (type === 'Payment' ? t('typePayment') : t('typeExpense'));
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Reports</Text>
+        <Text style={styles.title}>{t('reportsTitle')}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.refresh} onPress={exportReport}><Text style={styles.refreshText}>CSV</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.refresh} onPress={printReport}><Text style={styles.refreshText}>Print</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.refresh} onPress={fetchData}><Text style={styles.refreshText}>Refresh</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.refresh} onPress={exportReport}><Text style={styles.refreshText}>{t('csv')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.refresh} onPress={printReport}><Text style={styles.refreshText}>{t('print')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.refresh} onPress={fetchData}><Text style={styles.refreshText}>{t('refresh')}</Text></TouchableOpacity>
         </View>
       </View>
       {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> : (
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.cards}>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Expenses</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalExpenses)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Collected</Text><Text style={[styles.cardValue, { color: PAID_COLOR }]}>{money(totals.totalCollected)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Cash Balance</Text><Text style={[styles.cardValue, { color: totals.cashBalance >= 0 ? theme.primary : theme.danger }]}>{money(totals.cashBalance)}</Text></View>
-            <View style={styles.card}><Text style={styles.cardLabel}>Total Unpaid</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalUnpaid)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>{t('totalExpenses')}</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalExpenses)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>{t('totalCollected')}</Text><Text style={[styles.cardValue, { color: PAID_COLOR }]}>{money(totals.totalCollected)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>{t('cashBalance')}</Text><Text style={[styles.cardValue, { color: totals.cashBalance >= 0 ? theme.primary : theme.danger }]}>{money(totals.cashBalance)}</Text></View>
+            <View style={styles.card}><Text style={styles.cardLabel}>{t('totalUnpaid')}</Text><Text style={[styles.cardValue, { color: theme.danger }]}>{money(totals.totalUnpaid)}</Text></View>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabScroll}>
             {tabs.map((tab) => (
               <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}>
-                <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+                <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{t(tab.labelKey)}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -195,9 +195,9 @@ export default function ReportsScreen() {
               {balanceRows.map((row) => (
                 <View key={row.id} style={styles.row}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.primary}>Apartment {row.apartment}</Text>
+                    <Text style={styles.primary}>{t('apartment')} {row.apartment}</Text>
                     <Text style={styles.muted}>{row.owner}</Text>
-                    <Text style={styles.muted}>Opening {money(row.opening)} • Allocated {money(row.allocated)} • Paid <Text style={{ color: PAID_COLOR }}>{money(row.paid)}</Text></Text>
+                    <Text style={styles.muted}>{t('opening')} {money(row.opening)} • {t('allocated')} {money(row.allocated)} • {t('paid')} <Text style={{ color: PAID_COLOR }}>{money(row.paid)}</Text></Text>
                   </View>
                   <Text style={[styles.amount, { color: Math.max(row.balance, 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(row.balance, 0))}</Text>
                 </View>
@@ -211,7 +211,7 @@ export default function ReportsScreen() {
                 <View key={index} style={styles.row}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.primary}>{row.detail}</Text>
-                    <Text style={styles.muted}>{row.date} • {row.type} • Running {money(row.running)}</Text>
+                    <Text style={styles.muted}>{row.date} • {typeLabel(row.type)} • {t('running')} {money(row.running)}</Text>
                   </View>
                   <Text style={[styles.amount, { color: row.type === 'Payment' ? PAID_COLOR : UNPAID_COLOR }]}>{money(row.amount)}</Text>
                 </View>
@@ -225,7 +225,7 @@ export default function ReportsScreen() {
                 <View key={row.month} style={styles.row}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.primary}>{row.month}</Text>
-                    <Text style={styles.muted}>Expenses {money(row.expenses)} • Collected {money(row.collected)}</Text>
+                    <Text style={styles.muted}>{t('expenses')} {money(row.expenses)} • {t('collected')} {money(row.collected)}</Text>
                   </View>
                   <Text style={[styles.amount, { color: row.collected - row.expenses >= 0 ? theme.primary : theme.danger }]}>{money(row.collected - row.expenses)}</Text>
                 </View>

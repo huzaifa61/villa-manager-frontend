@@ -14,6 +14,7 @@ import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
 import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
+import { formatT, translateEnum } from '../../i18n/helpers';
 
 interface Apartment {
   id: number;
@@ -66,7 +67,7 @@ const emptyForm = {
 };
 
 const ApartmentsScreen = () => {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const navigation = useNavigation();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
@@ -145,7 +146,7 @@ const ApartmentsScreen = () => {
 
   const handleSave = async () => {
     if (!form.apartmentNumber.trim()) {
-      Alert.alert('Error', 'Apartment number is required');
+      Alert.alert(t('error'), t('apartmentNumberRequired'));
       return;
     }
     setSaving(true);
@@ -166,24 +167,33 @@ const ApartmentsScreen = () => {
       }
       setModalVisible(false);
       await fetchData();
-      Alert.alert('Success', editing ? 'Apartment updated' : 'Apartment added');
+      Alert.alert(t('success'), editing ? t('apartmentUpdated') : t('apartmentAdded'));
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Failed to save apartment');
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('failedSaveApartment'));
     } finally {
       setSaving(false);
     }
   };
 
+  const statusLabel = (status: string) => {
+    if (status === 'ACTIVE' || status === 'OCCUPIED') return t('statusActive');
+    if (status === 'VACANT' || status === 'INACTIVE') return t('statusVacant');
+    if (status === 'MAINTENANCE' || status === 'UNDER_MAINTENANCE') return t('maintenance');
+    return translateEnum(t, 'status', status, status);
+  };
+
   const handleDelete = (apartment: Apartment) => {
     confirmAction({
-      title: 'Delete Apartment',
-      message: 'Delete ' + apartment.apartmentNumber + '?',
+      title: t('deleteApartmentTitle'),
+      message: formatT(t('deleteApartmentMessage'), { number: apartment.apartmentNumber }),
+      confirmText: t('delete'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         try {
           await apiService.deleteApartment(villaId, apartment.id);
           await fetchData();
         } catch (e: any) {
-          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete apartment');
+          Alert.alert(t('error'), e?.response?.data?.message || t('failedDeleteApartment'));
         }
       },
     });
@@ -203,16 +213,16 @@ const ApartmentsScreen = () => {
     const allocated = globalShare + directExpenses;
     const balance = Number(statementApartment.openingBalance || 0) + allocated - paid;
     const rows = [
-      { date: 'Opening', detail: 'Opening balance', debit: Number(statementApartment.openingBalance || 0), credit: 0 },
+      { date: t('opening'), detail: t('openingBalanceDetail'), debit: Number(statementApartment.openingBalance || 0), credit: 0 },
       ...expenses.filter((e) => !e.apartmentId || e.apartmentId === statementApartment.id).map((e) => ({
         date: e.expenseDate || '',
-        detail: e.description || 'Expense',
+        detail: e.description || t('typeExpense'),
         debit: e.apartmentId ? Number(e.amount || 0) : Number(e.amount || 0) / Math.max(apartments.length, 1),
         credit: 0,
       })),
       ...payments.filter((p) => p.apartmentId === statementApartment.id).map((p) => ({
         date: p.paymentDate || '',
-        detail: p.notes || p.paymentMethod || 'Payment',
+        detail: p.notes || p.paymentMethod || t('typePayment'),
         debit: 0,
         credit: Number(p.amount || 0),
       })),
@@ -227,8 +237,8 @@ const ApartmentsScreen = () => {
       .map((e) => ({
         id: 'expense-' + e.id,
         date: e.expenseDate || '',
-        title: 'Expense allocation',
-        detail: (e.description || 'Expense') + ' - ' + money(e.apartmentId ? e.amount : Number(e.amount || 0) / Math.max(apartments.length, 1)),
+        title: t('expenseAllocation'),
+        detail: (e.description || t('typeExpense')) + ' - ' + money(e.apartmentId ? e.amount : Number(e.amount || 0) / Math.max(apartments.length, 1)),
         tone: 'expense',
       }));
     const apartmentPayments = payments
@@ -236,15 +246,15 @@ const ApartmentsScreen = () => {
       .map((p) => ({
         id: 'payment-' + p.id,
         date: p.paymentDate || '',
-        title: 'Payment recorded',
-        detail: money(p.amount) + ' - ' + (p.paymentMethod || 'Payment') + (p.notes ? ' - ' + p.notes : ''),
+        title: t('paymentRecorded'),
+        detail: money(p.amount) + ' - ' + (p.paymentMethod || t('typePayment')) + (p.notes ? ' - ' + p.notes : ''),
         tone: 'payment',
       }));
     const created = [{
       id: 'created',
       date: timelineApartment.createdAt || timelineApartment.updatedAt || '',
-      title: 'Apartment created',
-      detail: 'Apartment ' + timelineApartment.apartmentNumber,
+      title: t('apartmentCreated'),
+      detail: `${t('apartment')} ${timelineApartment.apartmentNumber}`,
       tone: 'created',
     }];
     return [...affectedExpenses, ...apartmentPayments, ...created]
@@ -281,25 +291,25 @@ const ApartmentsScreen = () => {
     return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.unitNumber}>Apartment {item.apartmentNumber}</Text>
+        <Text style={styles.unitNumber}>{t('apartment')} {item.apartmentNumber}</Text>
         <View style={[styles.badge, { backgroundColor: STATUS_COLORS[item.status] || theme.muted }]}>
-          <Text style={styles.badgeText}>{item.status}</Text>
+          <Text style={styles.badgeText}>{statusLabel(item.status)}</Text>
         </View>
       </View>
-      <Text style={styles.line}>Owner: {item.ownerName || '-'}</Text>
-      <Text style={styles.line}>Tenant: {item.tenantName || '-'}</Text>
-      <Text style={styles.line}>Phone: {item.phoneNumber || '-'}</Text>
+      <Text style={styles.line}>{t('owner')}: {item.ownerName || '-'}</Text>
+      <Text style={styles.line}>{t('tenant')}: {item.tenantName || '-'}</Text>
+      <Text style={styles.line}>{t('phone')}: {item.phoneNumber || '-'}</Text>
       <View style={styles.balanceRow}>
-        <Text style={styles.opening}>Opening: {money(item.openingBalance)}</Text>
-        <Text style={[styles.balance, { color: isPaidUp ? PAID_COLOR : UNPAID_COLOR }]}>Balance: {money(balanceDue)}</Text>
+        <Text style={styles.opening}>{t('openingBalance')}: {money(item.openingBalance)}</Text>
+        <Text style={[styles.balance, { color: isPaidUp ? PAID_COLOR : UNPAID_COLOR }]}>{t('balance')}: {money(balanceDue)}</Text>
       </View>
       <View style={styles.actions}>
-        {permissions.canManageVilla ? <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity> : null}
-        <TouchableOpacity style={styles.smallBtn} onPress={() => setStatementApartment(item)}><Text style={styles.smallBtnText}>Statement</Text></TouchableOpacity>
+        {permissions.canManageVilla ? <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>{t('edit')}</Text></TouchableOpacity> : null}
+        <TouchableOpacity style={styles.smallBtn} onPress={() => setStatementApartment(item)}><Text style={styles.smallBtnText}>{t('statement')}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.iconBtn} onPress={() => setTimelineApartment(item)}><Ionicons name="time-outline" size={17} color="#D1FAE5" /></TouchableOpacity>
         {permissions.canManageVilla ? <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}>
           <Ionicons name="trash-outline" size={15} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
-          <Text style={styles.deleteText}>Delete</Text>
+          <Text style={styles.deleteText}>{t('delete')}</Text>
         </TouchableOpacity> : null}
       </View>
     </View>
@@ -308,11 +318,11 @@ const ApartmentsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Apartments ({filteredApartments.length})</Text>
+        <Text style={styles.title}>{t('apartmentsTitle')} ({filteredApartments.length})</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.exportBtn} onPress={exportApartments}>
             <Ionicons name="download-outline" size={18} color={theme.text} />
-            <Text style={styles.exportText}>CSV</Text>
+            <Text style={styles.exportText}>{t('csv')}</Text>
           </TouchableOpacity>
           {permissions.canManageVilla ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={24} color={theme.onPrimary} />
@@ -324,7 +334,7 @@ const ApartmentsScreen = () => {
         <Ionicons name="search" size={18} color={theme.muted} />
         <TextInput
           style={styles.search}
-          placeholder="Search apartment, owner, tenant, phone, status..."
+          placeholder={t('searchApartments')}
           placeholderTextColor={theme.muted}
           value={query}
           onChangeText={setQuery}
@@ -335,8 +345,8 @@ const ApartmentsScreen = () => {
         filteredApartments.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="home-outline" size={64} color="#374151" />
-            <Text style={styles.emptyText}>{query ? 'No apartments match your search' : 'No apartments yet'}</Text>
-            {!query && permissions.canManageVilla ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>+ Add First Apartment</Text></TouchableOpacity> : null}
+            <Text style={styles.emptyText}>{query ? t('noApartmentsSearch') : t('noApartments')}</Text>
+            {!query && permissions.canManageVilla ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>{t('addFirstApartment')}</Text></TouchableOpacity> : null}
           </View>
         ) : (
           <FlatList data={filteredApartments} renderItem={renderItem} keyExtractor={(i) => String(i.id)} contentContainerStyle={{ padding: 16 }} />
@@ -346,31 +356,31 @@ const ApartmentsScreen = () => {
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>{editing ? 'Edit Apartment' : 'Add Apartment'}</Text>
-              <Text style={styles.label}>Apartment Number *</Text>
-              <TextInput style={styles.input} value={form.apartmentNumber} onChangeText={(v) => setForm({ ...form, apartmentNumber: v })} placeholder="Apartment 1" placeholderTextColor={theme.muted} />
-              <Text style={styles.label}>Owner Name</Text>
-              <TextInput style={styles.input} value={form.ownerName} onChangeText={(v) => setForm({ ...form, ownerName: v })} placeholder="Owner name" placeholderTextColor={theme.muted} />
-              <Text style={styles.label}>Tenant Name</Text>
-              <TextInput style={styles.input} value={form.tenantName} onChangeText={(v) => setForm({ ...form, tenantName: v })} placeholder="Tenant name" placeholderTextColor={theme.muted} />
-              <Text style={styles.label}>Phone</Text>
-              <TextInput style={styles.input} value={form.phoneNumber} onChangeText={(v) => setForm({ ...form, phoneNumber: v })} placeholder="Phone" placeholderTextColor={theme.muted} keyboardType="phone-pad" />
-              <Text style={styles.label}>Opening Balance (EGP)</Text>
+              <Text style={styles.modalTitle}>{editing ? t('editApartment') : t('addApartment')}</Text>
+              <Text style={styles.label}>{t('apartmentNumber')} *</Text>
+              <TextInput style={styles.input} value={form.apartmentNumber} onChangeText={(v) => setForm({ ...form, apartmentNumber: v })} placeholder={t('apartmentNumberPlaceholder')} placeholderTextColor={theme.muted} />
+              <Text style={styles.label}>{t('owner')}</Text>
+              <TextInput style={styles.input} value={form.ownerName} onChangeText={(v) => setForm({ ...form, ownerName: v })} placeholder={t('ownerNamePlaceholder')} placeholderTextColor={theme.muted} />
+              <Text style={styles.label}>{t('tenant')}</Text>
+              <TextInput style={styles.input} value={form.tenantName} onChangeText={(v) => setForm({ ...form, tenantName: v })} placeholder={t('tenantNamePlaceholder')} placeholderTextColor={theme.muted} />
+              <Text style={styles.label}>{t('phone')}</Text>
+              <TextInput style={styles.input} value={form.phoneNumber} onChangeText={(v) => setForm({ ...form, phoneNumber: v })} placeholder={t('phone')} placeholderTextColor={theme.muted} keyboardType="phone-pad" />
+              <Text style={styles.label}>{t('openingBalance')}</Text>
               <TextInput style={styles.input} value={form.openingBalance} onChangeText={(v) => setForm({ ...form, openingBalance: v })} placeholder="0" placeholderTextColor={theme.muted} keyboardType="decimal-pad" />
-              <Text style={styles.label}>Type</Text>
-              <TextInput style={styles.input} value={form.apartmentType} onChangeText={(v) => setForm({ ...form, apartmentType: v })} placeholder="Owner / Tenant / Family" placeholderTextColor={theme.muted} />
-              <Text style={styles.label}>Status</Text>
+              <Text style={styles.label}>{t('apartmentType')}</Text>
+              <TextInput style={styles.input} value={form.apartmentType} onChangeText={(v) => setForm({ ...form, apartmentType: v })} placeholder={t('apartmentTypePlaceholder')} placeholderTextColor={theme.muted} />
+              <Text style={styles.label}>{t('status')}</Text>
               <View style={styles.statusRow}>
-                {['ACTIVE', 'VACANT', 'MAINTENANCE'].map((s) => (
-                  <TouchableOpacity key={s} style={[styles.statusBtn, form.status === s && { backgroundColor: STATUS_COLORS[s], borderColor: STATUS_COLORS[s] }]} onPress={() => setForm({ ...form, status: s })}>
-                    <Text style={[styles.statusText, form.status === s && { color: theme.onPrimary }]}>{s}</Text>
+                {['ACTIVE', 'VACANT', 'MAINTENANCE'].map((st) => (
+                  <TouchableOpacity key={st} style={[styles.statusBtn, form.status === st && { backgroundColor: STATUS_COLORS[st], borderColor: STATUS_COLORS[st] }]} onPress={() => setForm({ ...form, status: st })}>
+                    <Text style={[styles.statusText, form.status === st && { color: theme.onPrimary }]}>{st === 'ACTIVE' ? t('statusActive') : st === 'VACANT' ? t('statusVacant') : t('maintenance')}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>{t('cancel')}</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{editing ? 'Save Changes' : 'Add Apartment'}</Text>}
+                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{editing ? t('saveChanges') : t('addApartment')}</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -383,14 +393,14 @@ const ApartmentsScreen = () => {
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.statementHeader}>
-                <Text style={styles.modalTitle}>Statement</Text>
+                <Text style={styles.modalTitle}>{t('statement')}</Text>
                 <TouchableOpacity onPress={() => setStatementApartment(null)}><Ionicons name="close" size={26} color={theme.muted} /></TouchableOpacity>
               </View>
-              <Text style={styles.statementTitle}>Apartment {statementApartment?.apartmentNumber}</Text>
+              <Text style={styles.statementTitle}>{t('apartment')} {statementApartment?.apartmentNumber}</Text>
               <View style={styles.summaryGrid}>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Allocated</Text><Text style={styles.summaryValue}>{money(statement?.allocated)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Paid</Text><Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{money(statement?.paid)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>Balance</Text><Text style={[styles.summaryValue, { color: Math.max(Number(statement?.balance || 0), 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(Number(statement?.balance || 0), 0))}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('allocatedLabel')}</Text><Text style={styles.summaryValue}>{money(statement?.allocated)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('paid')}</Text><Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{money(statement?.paid)}</Text></View>
+                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('balance')}</Text><Text style={[styles.summaryValue, { color: Math.max(Number(statement?.balance || 0), 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(Number(statement?.balance || 0), 0))}</Text></View>
               </View>
               {statement?.rows.map((row, index) => (
                 <View key={index} style={styles.statementRow}>
@@ -412,13 +422,13 @@ const ApartmentsScreen = () => {
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.statementHeader}>
-                <Text style={styles.modalTitle}>Apartment Timeline</Text>
+                <Text style={styles.modalTitle}>{t('apartmentTimeline')}</Text>
                 <TouchableOpacity onPress={() => setTimelineApartment(null)}><Ionicons name="close" size={26} color={theme.muted} /></TouchableOpacity>
               </View>
-              <Text style={styles.statementTitle}>Apartment {timelineApartment?.apartmentNumber}</Text>
+              <Text style={styles.statementTitle}>{t('apartment')} {timelineApartment?.apartmentNumber}</Text>
               <View style={styles.notesBox}>
-                <Text style={styles.notesLabel}>Internal notes:</Text>
-                <Text style={styles.notesText}>{timelineApartment?.notes || 'No notes saved for this apartment.'}</Text>
+                <Text style={styles.notesLabel}>{t('internalNotes')}</Text>
+                <Text style={styles.notesText}>{timelineApartment?.notes || t('noNotesSaved')}</Text>
               </View>
               <View style={styles.timelineWrap}>
                 {timeline.map((event) => (
@@ -427,7 +437,7 @@ const ApartmentsScreen = () => {
                       <View style={[styles.timelineDot, event.tone === 'payment' && styles.paymentDot, event.tone === 'created' && styles.createdDot]} />
                     </View>
                     <View style={styles.timelineCard}>
-                      <Text style={styles.timelineDate}>{event.date || 'No date'}</Text>
+                      <Text style={styles.timelineDate}>{event.date || t('noDate')}</Text>
                       <Text style={styles.timelineTitle}>{event.title}</Text>
                       <Text style={styles.timelineDetail}>{event.detail}</Text>
                     </View>

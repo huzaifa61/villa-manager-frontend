@@ -14,6 +14,7 @@ import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
 import { money } from '../../utils/money';
+import { formatT, translateExpenseCategory } from '../../i18n/helpers';
 
 interface Expense {
   id: number;
@@ -52,16 +53,16 @@ const CATEGORY_COLORS: Record<string, string> = {
   'CCTV': '#64748B', 'Dish / Satellite': '#7C3AED', 'Legal / Admin': '#475569', 'Emergency': '#B91C1C', 'Other': '#6B7280',
 };
 const SPLIT_TYPES = [
-  { key: 'ALL_EQUAL', label: 'All apartments — equal split' },
-  { key: 'SINGLE', label: 'Single apartment' },
-  { key: 'SELECTED_EQUAL', label: 'Selected apartments — equal split' },
-  { key: 'SELECTED_CUSTOM', label: 'Selected apartments — custom amounts' },
+  { key: 'ALL_EQUAL', labelKey: 'splitAllEqual' },
+  { key: 'SINGLE', labelKey: 'splitSingle' },
+  { key: 'SELECTED_EQUAL', labelKey: 'splitSelectedEqual' },
+  { key: 'SELECTED_CUSTOM', labelKey: 'splitSelectedCustom' },
 ];
 const emptyForm = { description: '', amount: '', category: 'Porter Salary', splitType: 'ALL_EQUAL', apartmentId: '', date: new Date().toISOString().split('T')[0] };
 const emptyTemplateForm = { templateName: '', description: '', amount: '', category: 'Repairs', apartmentId: '', dayOfMonth: '1', isActive: true };
 
 const ExpensesScreen = () => {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const dispatch = useDispatch();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
@@ -159,9 +160,9 @@ const ExpensesScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!form.amount) { Alert.alert('Error', 'Amount is required'); return; }
-    if (form.splitType === 'SINGLE' && !form.apartmentId) { Alert.alert('Error', 'Please select an apartment'); return; }
-    if ((form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && selectedAptIds.length === 0) { Alert.alert('Error', 'Please select at least one apartment'); return; }
+    if (!form.amount) { Alert.alert(t('error'), t('amountRequired')); return; }
+    if (form.splitType === 'SINGLE' && !form.apartmentId) { Alert.alert(t('error'), t('selectApartment')); return; }
+    if ((form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && selectedAptIds.length === 0) { Alert.alert(t('error'), t('selectOneApartment')); return; }
 
     const customAmountsObj: Record<string, number> = {};
     if (form.splitType === 'SELECTED_CUSTOM') {
@@ -192,9 +193,9 @@ const ExpensesScreen = () => {
       }
       setModalVisible(false);
       await fetchData();
-      Alert.alert('Success', editing ? 'Expense updated' : 'Expense added');
+      Alert.alert(t('success'), editing ? t('expenseUpdated') : t('expenseAdded'));
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Failed to save expense');
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('failedSaveExpense'));
     } finally {
       setSaving(false);
     }
@@ -202,14 +203,16 @@ const ExpensesScreen = () => {
 
   const handleDelete = (expense: Expense) => {
     confirmAction({
-      title: 'Delete Expense',
-      message: 'Delete this expense?',
+      title: t('deleteExpenseTitle'),
+      message: t('deleteExpenseMessage'),
+      confirmText: t('delete'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         try {
           await apiService.deleteExpense(villaId, expense.id);
           await fetchData();
         } catch (e: any) {
-          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete expense');
+          Alert.alert(t('error'), e?.response?.data?.message || t('failedDeleteExpense'));
         }
       },
     });
@@ -217,7 +220,7 @@ const ExpensesScreen = () => {
 
   const handleSaveTemplate = async () => {
     if (!templateForm.templateName.trim() || !templateForm.description.trim() || !templateForm.amount) {
-      Alert.alert('Error', 'Template name, description, and amount are required');
+      Alert.alert(t('error'), t('templateRequiredFields'));
       return;
     }
     const dayOfMonth = Math.max(1, Math.min(31, Number(templateForm.dayOfMonth || 1)));
@@ -239,9 +242,9 @@ const ExpensesScreen = () => {
       }
       setTemplateModalVisible(false);
       await fetchData();
-      Alert.alert('Success', editingTemplate ? 'Template updated' : 'Template added');
+      Alert.alert(t('success'), editingTemplate ? t('templateUpdated') : t('templateAdded'));
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Failed to save template');
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('failedSaveTemplate'));
     } finally {
       setSaving(false);
     }
@@ -249,14 +252,16 @@ const ExpensesScreen = () => {
 
   const handleDeleteTemplate = (template: ExpenseTemplate) => {
     confirmAction({
-      title: 'Delete Template',
-      message: 'Delete ' + template.templateName + '?',
+      title: t('deleteTemplateTitle'),
+      message: formatT(t('deleteTemplateMessage'), { name: template.templateName }),
+      confirmText: t('delete'),
+      cancelText: t('cancel'),
       onConfirm: async () => {
         try {
           await apiService.deleteExpenseTemplate(villaId, template.id);
           await fetchData();
         } catch (e: any) {
-          Alert.alert('Error', e?.response?.data?.message || 'Failed to delete template');
+          Alert.alert(t('error'), e?.response?.data?.message || t('failedDeleteTemplate'));
         }
       },
     });
@@ -266,9 +271,9 @@ const ExpensesScreen = () => {
     try {
       const generated = await apiService.runDueExpenseTemplates(villaId);
       await fetchData();
-      Alert.alert('Recurring Expenses', String(generated || 0) + ' due expense(s) generated');
+      Alert.alert(t('recurringExpensesTitle'), formatT(t('dueExpensesGenerated'), { count: String(generated || 0) }));
     } catch (e: any) {
-      Alert.alert('Error', e?.response?.data?.message || e?.message || 'Failed to run templates');
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('failedRunTemplates'));
     }
   };
 
@@ -294,44 +299,46 @@ const ExpensesScreen = () => {
   };
 
   const renderItem = ({ item }: { item: Expense }) => {
-    const category = item.categoryName || CATEGORIES[(item.categoryId || 1) - 1] || 'Other';
+    const categoryKey = item.categoryName || CATEGORIES[(item.categoryId || 1) - 1] || 'Other';
+    const category = translateExpenseCategory(t, categoryKey);
     return (
       <View style={styles.card}>
         <View style={styles.cardHeader}>
           <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.description}>{item.description}</Text>
-            <Text style={styles.meta}>{item.apartmentNumber ? 'Apartment ' + item.apartmentNumber : 'Equal - all apartments'}</Text>
+            <Text style={styles.meta}>{item.apartmentNumber ? `${t('apartment')} ${item.apartmentNumber}` : t('equalAllApartments')}</Text>
             <Text style={styles.date}>{item.expenseDate}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={styles.amount}>{money(item.amount)}</Text>
-            <View style={[styles.badge, { backgroundColor: CATEGORY_COLORS[category] || theme.muted }]}>
+            <View style={[styles.badge, { backgroundColor: CATEGORY_COLORS[categoryKey] || theme.muted }]}>
               <Text style={styles.badgeText}>{category}</Text>
             </View>
           </View>
         </View>
         {permissions.canManageFinancials ? <View style={styles.actions}>
-          <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>{t('edit')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item)}><Text style={styles.deleteText}>{t('delete')}</Text></TouchableOpacity>
         </View> : null}
       </View>
     );
   };
 
   const renderTemplate = (template: ExpenseTemplate) => {
-    const category = CATEGORIES[(template.categoryId || 1) - 1] || 'Other';
+    const categoryKey = CATEGORIES[(template.categoryId || 1) - 1] || 'Other';
+    const category = translateExpenseCategory(t, categoryKey);
     const apartment = apartments.find((a) => a.id === template.apartmentId);
     return (
       <View key={template.id} style={styles.templateCard}>
         <View style={{ flex: 1 }}>
           <Text style={styles.templateTitle}>{template.templateName}</Text>
-          <Text style={styles.templateMeta}>{category} - {apartment ? 'Apt ' + apartment.apartmentNumber : 'All apartments'}</Text>
-          <Text style={styles.templateMeta}>Day {template.dayOfMonth} monthly{template.lastGeneratedForMonth ? ' - last ' + template.lastGeneratedForMonth : ''}</Text>
+          <Text style={styles.templateMeta}>{category} - {apartment ? `${t('apt')} ${apartment.apartmentNumber}` : t('allApartments')}</Text>
+          <Text style={styles.templateMeta}>{formatT(t('dayMonthly'), { day: template.dayOfMonth })}{template.lastGeneratedForMonth ? ` - ${formatT(t('lastGenerated'), { month: template.lastGeneratedForMonth })}` : ''}</Text>
         </View>
         <Text style={styles.templateAmount}>{money(template.amount)}</Text>
         {permissions.canManageFinancials ? <>
-          <TouchableOpacity style={styles.smallBtn} onPress={() => openEditTemplate(template)}><Text style={styles.smallBtnText}>Edit</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteTemplate(template)}><Text style={styles.deleteText}>Delete</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.smallBtn} onPress={() => openEditTemplate(template)}><Text style={styles.smallBtnText}>{t('edit')}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDeleteTemplate(template)}><Text style={styles.deleteText}>{t('delete')}</Text></TouchableOpacity>
         </> : null}
       </View>
     );
@@ -341,17 +348,17 @@ const ExpensesScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Expenses ({filteredExpenses.length})</Text>
-          <Text style={styles.total}>Total: {money(totalExpenses)}</Text>
+          <Text style={styles.title}>{t('expensesTitle')} ({filteredExpenses.length})</Text>
+          <Text style={styles.total}>{t('totalExpenses')}: {money(totalExpenses)}</Text>
         </View>
         <View style={styles.headerActions}>
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.templateBtn} onPress={openAddTemplate}>
             <Ionicons name="repeat-outline" size={17} color="#D1FAE5" />
-            <Text style={styles.exportText}>Templates</Text>
+            <Text style={styles.exportText}>{t('templates')}</Text>
           </TouchableOpacity> : null}
           <TouchableOpacity style={styles.exportBtn} onPress={exportExpenses}>
             <Ionicons name="download-outline" size={17} color={theme.text} />
-            <Text style={styles.exportText}>CSV</Text>
+            <Text style={styles.exportText}>{t('csv')}</Text>
           </TouchableOpacity>
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={24} color={theme.onPrimary} />
@@ -361,15 +368,15 @@ const ExpensesScreen = () => {
 
       <View style={styles.searchWrap}>
         <Ionicons name="search" size={18} color={theme.muted} />
-        <TextInput style={styles.search} placeholder="Search expenses..." placeholderTextColor={theme.muted} value={query} onChangeText={setQuery} />
+        <TextInput style={styles.search} placeholder={t('searchExpenses')} placeholderTextColor={theme.muted} value={query} onChangeText={setQuery} />
       </View>
 
       {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 40 }} /> :
         filteredExpenses.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={60} color="#4B5563" />
-            <Text style={styles.emptyText}>{query ? 'No expenses match your search' : 'No expenses yet'}</Text>
-            {!query && permissions.canManageFinancials ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>Add Expense</Text></TouchableOpacity> : null}
+            <Text style={styles.emptyText}>{query ? t('noExpensesSearch') : t('noExpenses')}</Text>
+            {!query && permissions.canManageFinancials ? <TouchableOpacity style={styles.addFirstBtn} onPress={openAdd}><Text style={styles.addFirstText}>{t('addExpenseBtn')}</Text></TouchableOpacity> : null}
           </View>
         ) : <FlatList data={filteredExpenses} renderItem={renderItem} keyExtractor={(i) => i.id.toString()} contentContainerStyle={{ padding: 16 }} />}
 
@@ -378,14 +385,14 @@ const ExpensesScreen = () => {
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editing ? 'Edit Expense' : 'Add Expense'}</Text>
+                <Text style={styles.modalTitle}>{editing ? t('editExpense') : t('addExpense')}</Text>
                 <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close-circle" size={28} color={theme.muted} /></TouchableOpacity>
               </View>
 
               {/* Date + Category */}
               <View style={[styles.twoCol, { zIndex: showCategoryDD ? 300 : 1 }]}>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Date *</Text>
+                  <Text style={styles.label}>{t('date')} *</Text>
                   <TextInput style={styles.input} value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} placeholderTextColor="#9CA3AF" />
                 </View>
                 <View style={[styles.col, { zIndex: showCategoryDD ? 400 : 1 }]}>
@@ -398,63 +405,62 @@ const ExpensesScreen = () => {
                     >
                       {CATEGORIES.map((c) => (
                         <TouchableOpacity key={c} style={styles.dropdownItem} onPress={() => { setForm({ ...form, category: c }); setShowCategoryDD(false); }}>
-                          <Text style={[styles.dropdownItemText, form.category === c && styles.dropdownItemTextActive]}>{c}</Text>
+                          <Text style={[styles.dropdownItemText, form.category === c && styles.dropdownItemTextActive]}>{translateExpenseCategory(t, c)}</Text>
                           {form.category === c ? <Ionicons name="checkmark" size={16} color={theme.primary} /> : null}
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
                   )}
-                  <Text style={styles.label}>Category *</Text>
+                  <Text style={styles.label}>{t('category')} *</Text>
                   <TouchableOpacity style={styles.dropdownBtn} onPress={() => { setShowCategoryDD(!showCategoryDD); setShowSplitDD(false); setShowAptDD(false); }}>
-                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{form.category}</Text>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{translateExpenseCategory(t, form.category)}</Text>
                     <Ionicons name={showCategoryDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* Description */}
-              <Text style={styles.label}>Description</Text>
-              <TextInput style={styles.input} placeholder="Description" placeholderTextColor="#9CA3AF" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} />
+              <Text style={styles.label}>{t('description')}</Text>
+              <TextInput style={styles.input} placeholder={t('description')} placeholderTextColor="#9CA3AF" value={form.description} onChangeText={(v) => setForm({ ...form, description: v })} />
 
               {/* Amount + Split Type */}
               <View style={[styles.twoCol, { zIndex: showSplitDD ? 300 : 100 }]}>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Amount (EGP) *</Text>
+                  <Text style={styles.label}>{t('amount')} (EGP) *</Text>
                   <TextInput style={styles.input} placeholder="0" placeholderTextColor="#9CA3AF" value={form.amount} onChangeText={(v) => setForm({ ...form, amount: v })} keyboardType="decimal-pad" />
                 </View>
                 <View style={[styles.col, { zIndex: showSplitDD ? 400 : 150 }]}>
                   {showSplitDD && <ScrollView style={[styles.dropdownMenu, styles.splitDropdownMenu]} nestedScrollEnabled showsVerticalScrollIndicator>
                     {SPLIT_TYPES.map((s) => <TouchableOpacity key={s.key} style={styles.dropdownItem} onPress={() => { setForm({ ...form, splitType: s.key, apartmentId: '' }); setSelectedAptIds([]); setShowSplitDD(false); }}>
-                      <Text style={[styles.dropdownItemText, form.splitType === s.key && { color: theme.primary, fontWeight: '900' }]}>{s.label}</Text>
+                      <Text style={[styles.dropdownItemText, form.splitType === s.key && { color: theme.primary, fontWeight: '900' }]}>{t(s.labelKey)}</Text>
                     </TouchableOpacity>)}
                   </ScrollView>}
-                  <Text style={styles.label}>Split Type *</Text>
+                  <Text style={styles.label}>{t('splitType')} *</Text>
                   <TouchableOpacity style={[styles.dropdownBtn, { borderColor: theme.primary }]} onPress={() => { setShowSplitDD(!showSplitDD); setShowCategoryDD(false); setShowAptDD(false); }}>
-                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find(s => s.key === form.splitType)?.label || 'Select'}</Text>
+                    <Text style={styles.dropdownBtnText} numberOfLines={1}>{SPLIT_TYPES.find(s => s.key === form.splitType) ? t(SPLIT_TYPES.find(s => s.key === form.splitType)!.labelKey) : t('splitType')}</Text>
                     <Ionicons name={showSplitDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                   </TouchableOpacity>
                 </View>
               </View>
 
               {form.splitType === 'ALL_EQUAL' && apartments.length === 0 && (
-                <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                <Text style={styles.aptEmptyText}>{t('noApartmentsInVilla')}</Text>
               )}
 
-              {/* SINGLE: Apartment dropdown */}
               {form.splitType === 'SINGLE' && (
                 <View>
-                  <Text style={styles.label}>Apartment *</Text>
+                  <Text style={styles.label}>{t('apartment')} *</Text>
                   {apartments.length === 0 ? (
-                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                    <Text style={styles.aptEmptyText}>{t('noApartmentsInVilla')}</Text>
                   ) : (
                     <>
                       <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowAptDD(!showAptDD)}>
-                        <Text style={styles.dropdownBtnText}>{apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber ? 'Apartment ' + apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber : 'Select apartment'}</Text>
+                        <Text style={styles.dropdownBtnText}>{apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber ? `${t('apartment')} ${apartments.find(a => String(a.id) === form.apartmentId)?.apartmentNumber}` : t('selectApartmentLabel')}</Text>
                         <Ionicons name={showAptDD ? 'chevron-up' : 'chevron-down'} size={14} color={theme.muted} />
                       </TouchableOpacity>
                       {showAptDD && <View style={styles.dropdownMenu}>
                         {apartments.map((a) => <TouchableOpacity key={a.id} style={styles.dropdownItem} onPress={() => { setForm({ ...form, apartmentId: String(a.id) }); setShowAptDD(false); }}>
-                          <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>Apartment {a.apartmentNumber}</Text>
+                          <Text style={[styles.dropdownItemText, form.apartmentId === String(a.id) && { color: theme.primary, fontWeight: '900' }]}>{t('apartment')} {a.apartmentNumber}</Text>
                         </TouchableOpacity>)}
                       </View>}
                     </>
@@ -462,12 +468,11 @@ const ExpensesScreen = () => {
                 </View>
               )}
 
-              {/* SELECTED_EQUAL or SELECTED_CUSTOM: checkboxes */}
               {(form.splitType === 'SELECTED_EQUAL' || form.splitType === 'SELECTED_CUSTOM') && (
                 <View style={styles.aptSelectBox}>
-                  <Text style={styles.aptSelectTitle}>Selected apartments</Text>
+                  <Text style={styles.aptSelectTitle}>{t('selectedApartments')}</Text>
                   {apartments.length === 0 ? (
-                    <Text style={styles.aptEmptyText}>0 apartments in this villa currently.</Text>
+                    <Text style={styles.aptEmptyText}>{t('noApartmentsInVilla')}</Text>
                   ) : apartments.map((a) => {
                     const checked = selectedAptIds.includes(a.id);
                     return (
@@ -478,12 +483,12 @@ const ExpensesScreen = () => {
                           <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
                             {checked && <Ionicons name="checkmark" size={12} color="#fff" />}
                           </View>
-                          <Text style={styles.aptLabel}>Apartment {a.apartmentNumber}</Text>
+                          <Text style={styles.aptLabel}>{t('apartment')} {a.apartmentNumber}</Text>
                         </TouchableOpacity>
                         {form.splitType === 'SELECTED_CUSTOM' && (
                           <TextInput
                             style={styles.customAmtInput}
-                            placeholder="Custom amount"
+                            placeholder={t('customAmount')}
                             placeholderTextColor="#9CA3AF"
                             value={customAmounts[a.id] || ''}
                             onChangeText={(v) => setCustomAmounts({ ...customAmounts, [a.id]: v })}
@@ -497,7 +502,7 @@ const ExpensesScreen = () => {
               )}
 
               <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
-                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>Save</Text>}
+                {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{t('save')}</Text>}
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -509,7 +514,7 @@ const ExpensesScreen = () => {
           <View style={styles.modal}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>{editingTemplate ? 'Edit Template' : 'Recurring Templates'}</Text>
+                <Text style={styles.modalTitle}>{editingTemplate ? t('editTemplate') : t('recurringTemplates')}</Text>
                 <TouchableOpacity onPress={() => setTemplateModalVisible(false)}><Ionicons name="close" size={26} color={theme.muted} /></TouchableOpacity>
               </View>
 
@@ -518,58 +523,58 @@ const ExpensesScreen = () => {
                   {templates.map(renderTemplate)}
                 </View>
               ) : (
-                <Text style={styles.emptyTemplateText}>No recurring templates yet.</Text>
+                <Text style={styles.emptyTemplateText}>{t('noRecurringTemplates')}</Text>
               )}
 
-              <Text style={styles.sectionTitle}>{editingTemplate ? 'Template Details' : 'Add Template'}</Text>
-              <Text style={styles.label}>Template Name</Text>
-              <TextInput style={styles.input} value={templateForm.templateName} onChangeText={(v) => setTemplateForm({ ...templateForm, templateName: v })} placeholder="Porter salary" placeholderTextColor="#9CA3AF" />
+              <Text style={styles.sectionTitle}>{editingTemplate ? t('templateDetails') : t('addTemplate')}</Text>
+              <Text style={styles.label}>{t('templateName')}</Text>
+              <TextInput style={styles.input} value={templateForm.templateName} onChangeText={(v) => setTemplateForm({ ...templateForm, templateName: v })} placeholder={t('porterSalaryPlaceholder')} placeholderTextColor="#9CA3AF" />
               <View style={styles.twoCol}>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Amount</Text>
+                  <Text style={styles.label}>{t('amount')}</Text>
                   <TextInput style={styles.input} value={templateForm.amount} onChangeText={(v) => setTemplateForm({ ...templateForm, amount: v })} placeholder="0" placeholderTextColor="#9CA3AF" keyboardType="decimal-pad" />
                 </View>
                 <View style={styles.col}>
-                  <Text style={styles.label}>Day of Month</Text>
+                  <Text style={styles.label}>{t('dayOfMonth')}</Text>
                   <TextInput style={styles.input} value={templateForm.dayOfMonth} onChangeText={(v) => setTemplateForm({ ...templateForm, dayOfMonth: v })} placeholder="1" placeholderTextColor="#9CA3AF" keyboardType="number-pad" />
                 </View>
               </View>
-              <Text style={styles.label}>Description</Text>
-              <TextInput style={styles.input} value={templateForm.description} onChangeText={(v) => setTemplateForm({ ...templateForm, description: v })} placeholder="Monthly recurring expense" placeholderTextColor="#9CA3AF" />
+              <Text style={styles.label}>{t('description')}</Text>
+              <TextInput style={styles.input} value={templateForm.description} onChangeText={(v) => setTemplateForm({ ...templateForm, description: v })} placeholder={t('monthlyRecurringPlaceholder')} placeholderTextColor="#9CA3AF" />
 
-              <Text style={styles.label}>Allocation</Text>
+              <Text style={styles.label}>{t('allocation')}</Text>
               <View style={styles.catRow}>
                 <TouchableOpacity style={[styles.catBtn, !templateForm.apartmentId && styles.catActive]} onPress={() => setTemplateForm({ ...templateForm, apartmentId: '' })}>
-                  <Text style={[styles.catText, !templateForm.apartmentId && { color: theme.onPrimary }]}>All apartments</Text>
+                  <Text style={[styles.catText, !templateForm.apartmentId && { color: theme.onPrimary }]}>{t('allApartments')}</Text>
                 </TouchableOpacity>
                 {apartments.map((a) => (
                   <TouchableOpacity key={a.id} style={[styles.catBtn, templateForm.apartmentId === String(a.id) && styles.catActive]} onPress={() => setTemplateForm({ ...templateForm, apartmentId: String(a.id) })}>
-                    <Text style={[styles.catText, templateForm.apartmentId === String(a.id) && { color: theme.onPrimary }]}>Apt {a.apartmentNumber}</Text>
+                    <Text style={[styles.catText, templateForm.apartmentId === String(a.id) && { color: theme.onPrimary }]}>{t('apt')} {a.apartmentNumber}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={styles.label}>Category</Text>
+              <Text style={styles.label}>{t('category')}</Text>
               <ScrollView style={styles.templateCategoryScroll} nestedScrollEnabled showsVerticalScrollIndicator>
                 <View style={styles.catRow}>
                   {CATEGORIES.map((c) => (
                     <TouchableOpacity key={c} style={[styles.catBtn, templateForm.category === c && { backgroundColor: CATEGORY_COLORS[c] || theme.primary }]} onPress={() => setTemplateForm({ ...templateForm, category: c })}>
-                      <Text style={[styles.catText, templateForm.category === c && { color: theme.onPrimary }]}>{c}</Text>
+                      <Text style={[styles.catText, templateForm.category === c && { color: theme.onPrimary }]}>{translateExpenseCategory(t, c)}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </ScrollView>
               <View style={styles.statusRow}>
                 <TouchableOpacity style={[styles.catBtn, templateForm.isActive && styles.catActive]} onPress={() => setTemplateForm({ ...templateForm, isActive: !templateForm.isActive })}>
-                  <Text style={[styles.catText, templateForm.isActive && { color: theme.onPrimary }]}>{templateForm.isActive ? 'Active' : 'Paused'}</Text>
+                  <Text style={[styles.catText, templateForm.isActive && { color: theme.onPrimary }]}>{templateForm.isActive ? t('active') : t('paused')}</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.smallBtn} onPress={runDueTemplates}><Text style={styles.smallBtnText}>Run due now</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.smallBtn} onPress={runDueTemplates}><Text style={styles.smallBtnText}>{t('runDueNow')}</Text></TouchableOpacity>
               </View>
 
               <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setTemplateModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setTemplateModalVisible(false)} disabled={saving}><Text style={styles.cancelText}>{t('cancel')}</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.6 }]} onPress={handleSaveTemplate} disabled={saving}>
-                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>Save Template</Text>}
+                  {saving ? <ActivityIndicator color={theme.onPrimary} size="small" /> : <Text style={styles.saveText}>{t('saveTemplate')}</Text>}
                 </TouchableOpacity>
               </View>
             </ScrollView>

@@ -9,6 +9,7 @@ import { fetchUnreadCount } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { roleLabel } from '../../utils/permissions';
+import { formatT, translateEnum } from '../../i18n/helpers';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -113,7 +114,7 @@ export default function DashboardScreen({ navigation }: any) {
             {villas.map((villa) => (
               <TouchableOpacity key={villa.id} style={[s.villaPickerItem, villa.id === villaId && s.villaPickerItemActive]} onPress={() => switchVilla(villa)}>
                 <View style={s.villaPickerLeft}>
-                  <View style={s.typeBadge}><Text style={s.typeBadgeText}>{villa.propertyType || 'VILLA'}</Text></View>
+                  <View style={s.typeBadge}><Text style={s.typeBadgeText}>{translateEnum(t, 'property', villa.propertyType || 'VILLA')}</Text></View>
                   <View>
                     <Text style={s.villaPickerName}>{villa.name}</Text>
                     {villa.region ? <Text style={s.villaPickerMeta}>{villa.region}</Text> : null}
@@ -171,10 +172,10 @@ export default function DashboardScreen({ navigation }: any) {
             {/* ALL VILLAS LIST */}
             {villas.length > 0 && (
               <View>
-                <Text style={s.section}>All Properties ({villas.length})</Text>
+                <Text style={s.section}>{formatT(t('allProperties'), { count: villas.length })}</Text>
                 {villas.map((villa) => (
                   <TouchableOpacity key={villa.id} style={[s.villaRow, villa.id === villaId && s.villaRowActive]} onPress={() => switchVilla(villa)}>
-                    <View style={s.typeBadge}><Text style={s.typeBadgeText}>{villa.propertyType || 'VILLA'}</Text></View>
+                    <View style={s.typeBadge}><Text style={s.typeBadgeText}>{translateEnum(t, 'property', villa.propertyType || 'VILLA')}</Text></View>
                     <View style={{ flex: 1, marginLeft: 10 }}>
                       <Text style={s.villaRowName}>{villa.name}</Text>
                       {villa.region ? <Text style={s.villaRowMeta}>{villa.propertyNumber ? `#${villa.propertyNumber} · ` : ''}{villa.region}</Text> : null}
@@ -188,11 +189,11 @@ export default function DashboardScreen({ navigation }: any) {
             )}
 
             <View style={s.summary}>
-              <Text style={s.summaryTitle}>Financial Summary</Text>
-              <View style={s.row}><Text style={s.rowLbl}>Total Collected</Text><Text style={[s.rowVal, { color: theme.primary }]}>EGP {stats.collected.toLocaleString()}</Text></View>
-              <View style={s.row}><Text style={s.rowLbl}>Total Expenses</Text><Text style={[s.rowVal, { color: theme.danger }]}>EGP {stats.expenses.toLocaleString()}</Text></View>
+              <Text style={s.summaryTitle}>{t('financialSummary')}</Text>
+              <View style={s.row}><Text style={s.rowLbl}>{t('totalCollected')}</Text><Text style={[s.rowVal, { color: theme.primary }]}>EGP {stats.collected.toLocaleString()}</Text></View>
+              <View style={s.row}><Text style={s.rowLbl}>{t('totalExpenses')}</Text><Text style={[s.rowVal, { color: theme.danger }]}>EGP {stats.expenses.toLocaleString()}</Text></View>
               <View style={[s.row, s.netRow]}>
-                <Text style={s.rowLbl}>Net Income</Text>
+                <Text style={s.rowLbl}>{t('netIncome')}</Text>
                 <Text style={[s.rowVal, { color: stats.collected - stats.expenses >= 0 ? theme.primary : theme.danger }]}>
                   EGP {Math.abs(stats.collected - stats.expenses).toLocaleString()}
                 </Text>
@@ -204,7 +205,7 @@ export default function DashboardScreen({ navigation }: any) {
               <View style={s.subPanel}>
                 <View style={s.subPanelHeader}>
                   <Ionicons name="time-outline" size={18} color={theme.primary} />
-                  <Text style={s.subPanelTitle}>Subscriptions</Text>
+                  <Text style={s.subPanelTitle}>{t('subscriptions')}</Text>
                 </View>
                 {villaManagers.map((vm: any) => {
                   const expired = vm.subscriptionExpired;
@@ -223,20 +224,20 @@ export default function DashboardScreen({ navigation }: any) {
                       <View style={s.subStatus}>
                         {expired ? (
                           <View style={[s.subBadge, s.subBadgeExpired]}>
-                            <Text style={s.subBadgeText}>⛔ Expired</Text>
+                            <Text style={s.subBadgeText}>⛔ {t('subscriptionExpired')}</Text>
                           </View>
                         ) : expDate ? (
                           <View style={[s.subBadge, nearExpiry ? s.subBadgeWarn : s.subBadgeOk]}>
                             <Text style={s.subBadgeText}>
-                              {nearExpiry ? `⚠️ ${daysLeft}d left` : `✅ ${expDate.toLocaleDateString()}`}
+                              {nearExpiry ? `⚠️ ${formatT(t('daysLeft'), { days: daysLeft! })}` : `✅ ${expDate.toLocaleDateString()}`}
                             </Text>
                           </View>
                         ) : (
                           <View style={[s.subBadge, s.subBadgeNone]}>
-                            <Text style={s.subBadgeText}>♾️ No expiry</Text>
+                            <Text style={s.subBadgeText}>♾️ {t('noExpiry')}</Text>
                           </View>
                         )}
-                        <Text style={s.subViewerCount}>👥 {vm.maxViewers || 5} viewers</Text>
+                        <Text style={s.subViewerCount}>👥 {formatT(t('viewersCount'), { count: vm.maxViewers || 5 })}</Text>
                       </View>
                     </View>
                   );
