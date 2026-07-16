@@ -25,7 +25,7 @@ export default {
     ios: {
       bundleIdentifier: "com.villamanager.pro",
     },
-    plugins: ["expo-notifications"],
+    plugins: ["expo-notifications", "@react-native-community/datetimepicker"],
     extra: {
       // Bake API URL into the bundle at build time
       apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://villa-manager-backend-production.up.railway.app/api",

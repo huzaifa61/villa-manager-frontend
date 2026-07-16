@@ -8,6 +8,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor, roleLabel, roles as appRoles, canDeleteMember } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
+import DateInput from '../../components/DateInput';
 
 const selectableRoles = (t: (key: string) => string) => [
   { label: t('roleGeneralManager'), value: appRoles.GENERAL_MANAGER },
@@ -433,12 +434,12 @@ export default function VillaMembersScreen() {
               <Text style={styles.modalEmail}>{subModal.member.email}</Text>
 
               <Text style={styles.label}>Expiry Date (YYYY-MM-DD)</Text>
-              <TextInput
-                style={styles.input}
+              <DateInput
                 value={subModal.expiresAt}
-                onChangeText={(v) => setSubModal(p => p ? { ...p, expiresAt: v } : null)}
+                onChange={(expiresAt) => setSubModal(p => p ? { ...p, expiresAt } : null)}
+                style={styles.input}
                 placeholder="e.g. 2026-12-31"
-                placeholderTextColor={theme.muted}
+                clearable
               />
 
               <Text style={styles.label}>Max Viewers Allowed</Text>

@@ -13,6 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
+import DateInput from '../../components/DateInput';
 
 interface Payment {
   id: number;
@@ -295,7 +296,7 @@ const PaymentsScreen = () => {
               <View style={styles.twoCol}>
                 <View style={styles.col}>
                   <Text style={styles.label}>{t('date')} *</Text>
-                  <TextInput style={styles.input} value={form.paymentDate} onChangeText={(v) => setForm({ ...form, paymentDate: v })} placeholderTextColor="#9CA3AF" />
+                  <DateInput value={form.paymentDate} onChange={(paymentDate) => setForm({ ...form, paymentDate })} style={styles.input} />
                 </View>
                 <View style={styles.col}>
                   <Text style={styles.label}>{t('amount')} (EGP) *</Text>

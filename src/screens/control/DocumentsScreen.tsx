@@ -10,6 +10,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
+import DateInput from '../../components/DateInput';
 
 const STORAGE_KEY = 'villa-documents-v1';
 const emptyDocument = { title: '', type: 'Receipt', link: '', renewalDate: '', notes: '' };
@@ -136,7 +137,7 @@ export default function DocumentsScreen() {
               ))}
             </ScrollView>
             <TextInput style={styles.input} value={form.link} onChangeText={(link) => setForm({ ...form, link })} placeholder="Link, reference number, or location" placeholderTextColor={theme.muted} autoCapitalize="none" />
-            <TextInput style={styles.input} value={form.renewalDate} onChangeText={(renewalDate) => setForm({ ...form, renewalDate })} placeholder="Renewal / expiry date" placeholderTextColor={theme.muted} />
+            <DateInput value={form.renewalDate} onChange={(renewalDate) => setForm({ ...form, renewalDate })} style={styles.input} placeholder="Renewal / expiry date" clearable />
             <TextInput style={[styles.input, styles.textarea]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder="Notes" placeholderTextColor={theme.muted} multiline />
             <TouchableOpacity style={styles.saveButton} onPress={saveDocument}><Text style={styles.saveText}>Save Document</Text></TouchableOpacity>
           </View>

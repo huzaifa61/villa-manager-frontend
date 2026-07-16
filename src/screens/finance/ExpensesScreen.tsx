@@ -13,6 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
+import DateInput from '../../components/DateInput';
 import { money } from '../../utils/money';
 import { formatT, translateExpenseCategory } from '../../i18n/helpers';
 
@@ -393,7 +394,7 @@ const ExpensesScreen = () => {
               <View style={[styles.twoCol, { zIndex: showCategoryDD ? 300 : 1 }]}>
                 <View style={styles.col}>
                   <Text style={styles.label}>{t('date')} *</Text>
-                  <TextInput style={styles.input} value={form.date} onChangeText={(v) => setForm({ ...form, date: v })} placeholderTextColor="#9CA3AF" />
+                  <DateInput value={form.date} onChange={(date) => setForm({ ...form, date })} style={styles.input} />
                 </View>
                 <View style={[styles.col, { zIndex: showCategoryDD ? 400 : 1 }]}>
                   {showCategoryDD && (

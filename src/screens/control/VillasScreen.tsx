@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { confirmAction } from '../../utils/confirm';
+import DateInput from '../../components/DateInput';
 
 const EGYPT_REGIONS = [
   'Cairo', 'Giza', 'Alexandria', 'Aswan', 'Asyut', 'Beheira', 'Beni Suef',
@@ -23,7 +24,7 @@ function ManagerSubscriptionFields({ f, setF, styles, theme }: { f: any; setF: R
         <Text style={styles.subBoxTitle}>Manager Subscription</Text>
       </View>
       <Text style={styles.label}>Expiry Date (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} value={f.subscriptionExpiresAt} onChangeText={(v) => setF((prev: any) => ({ ...prev, subscriptionExpiresAt: v }))} placeholder="e.g. 2026-12-31 (blank = no expiry)" placeholderTextColor={theme.muted} />
+      <DateInput value={f.subscriptionExpiresAt} onChange={(subscriptionExpiresAt) => setF((prev: any) => ({ ...prev, subscriptionExpiresAt }))} style={styles.input} placeholder="e.g. 2026-12-31 (blank = no expiry)" clearable />
       <Text style={styles.label}>Max Viewers Allowed</Text>
       <TextInput style={styles.input} value={f.maxViewers} onChangeText={(v) => setF((prev: any) => ({ ...prev, maxViewers: v }))} keyboardType="number-pad" placeholder="e.g. 5" placeholderTextColor={theme.muted} />
     </View>
