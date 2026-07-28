@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Case Study - Villa Manager Pro</title>
+  <style>@page {
+  size: A4;
+  margin: 18mm 14mm 20mm 14mm;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  color: #1f2937;
+}
+
+h1, h2, h3, h4 {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+table {
+  font-size: 9.5pt;
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0 14px;
+}
+
+th, td {
+  border: 1px solid #d1d5db;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+th {
+  background: #f3f4f6;
+}
+
+/* Each feature section starts on a fresh page */
+.screenshot-section {
+  page-break-before: always;
+  break-before: page;
+  margin-bottom: 12px;
+}
+
+.screenshot-section:first-of-type {
+  page-break-before: auto;
+  break-before: auto;
+}
+
+/* Image block: never split across pages */
+.screenshot-block {
+  page-break-inside: avoid !important;
+  break-inside: avoid-page !important;
+  page-break-before: auto;
+  page-break-after: avoid;
+  break-after: avoid-page;
+  text-align: center;
+  margin: 10px 0 14px;
+  padding: 6px 0;
+  min-height: 1px;
+}
+
+.screenshot-block img {
+  display: block;
+  max-width: 34% !important;
+  max-height: 240px !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 auto !important;
+  object-fit: contain;
+  page-break-inside: avoid !important;
+  break-inside: avoid-page !important;
+}
+
+img {
+  display: block;
+  max-width: 34%;
+  max-height: 240px;
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  object-fit: contain;
+  page-break-inside: avoid;
+  break-inside: avoid-page;
+}
+
+/* Large mapping tables can break across pages */
+.mapping-table {
+  page-break-inside: auto;
+  break-inside: auto;
+}
+
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 16px 0;
+}
+
+code {
+  background: #f3f4f6;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9pt;
+}
+
+pre {
+  font-size: 8.5pt;
+  page-break-inside: avoid;
+  break-inside: avoid-page;
+}
+
+    .page-break { page-break-before: always; break-before: page; height: 0; margin: 0; }
+    .screenshot-figure {
+      page-break-inside: avoid !important;
+      break-inside: avoid-page !important;
+      text-align: center;
+      margin: 12px auto 16px;
+      padding: 0;
+    }
+    .screenshot-figure img {
+      display: block;
+      max-width: 36% !important;
+      max-height: 220px !important;
+      width: auto !important;
+      height: auto !important;
+      margin: 0 auto !important;
+      object-fit: contain;
+      page-break-inside: avoid !important;
+      break-inside: avoid-page !important;
+    }
+    h3 { page-break-after: avoid; break-after: avoid; margin-top: 0; }
+  </style>
+</head>
+<body><h1>Case Study: Villa Manager Pro</h1>
+<h2>Finance Planning, Budgeting &amp; Multi-Property Operations Platform</h2>
+<p><strong>Prepared for:</strong> Panasonic MEA – Business Planning Application, Phase II<br><strong>Reference Project:</strong> Villa Manager Pro (Frontend + Backend)<br><strong>Technology Stack:</strong> .NET Core 8.0 · Angular 19 · DevExtreme · SQL Server 2022 · Azure · Power Apps  </p>
+<hr>
+<h2>1. Executive Summary</h2>
+<p><strong>Villa Manager Pro</strong> is a production finance and operations platform built for property managers overseeing multiple villas and apartment complexes across the Middle East &amp; Africa region. The solution delivers the same core capabilities Panasonic MEA requires in Phase II:</p>
+<ul>
+<li><strong>Business plan analysis</strong> across a portfolio of properties  </li>
+<li><strong>Budgeting</strong> through recurring expense templates and category-based cost planning  </li>
+<li><strong>Forecasting</strong> via monthly trend reports and automated recurring cost generation  </li>
+<li><strong>Operating profit estimation</strong> through real-time net income calculation (Collected − Expenses)</li>
+</ul>
+<p>The platform was developed end-to-end using the <strong>full Panasonic Phase II technology stack</strong> — from .NET Core 8.0 backend APIs and SQL Server 2022 data layer, to an Angular 19 + DevExtreme frontend, Azure cloud deployment with CI/CD pipelines, and a Power Apps mobile companion for field workflows.</p>
+<p>This document maps every implemented feature to Panasonic&#39;s requirements, with screenshots as evidence, and identifies additional features that can be positioned for Phase II delivery.</p>
+<hr>
+<h2>2. Project Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Domain</strong></td>
+<td>Finance Planning, Budgeting &amp; Property Operations</td>
+</tr>
+<tr>
+<td><strong>Users</strong></td>
+<td>General Managers, Villa Managers, Viewers</td>
+</tr>
+<tr>
+<td><strong>Properties Managed</strong></td>
+<td>8+ villas/buildings across Giza, Cairo, Alexandria, Sohag</td>
+</tr>
+<tr>
+<td><strong>Currency</strong></td>
+<td>EGP (multi-currency ready architecture)</td>
+</tr>
+<tr>
+<td><strong>Languages</strong></td>
+<td>English + Arabic (RTL support)</td>
+</tr>
+<tr>
+<td><strong>Deployment</strong></td>
+<td>Azure Cloud (App Service + Azure SQL) with CI/CD pipelines</td>
+</tr>
+</tbody></table>
+<h3>Business Problem Solved</h3>
+<p>Property managers needed a single platform to:</p>
+<ol>
+<li>Track revenue collections and operational expenses across multiple properties  </li>
+<li>Allocate shared costs fairly across units (apartments)  </li>
+<li>Monitor unit-level balances and outstanding dues  </li>
+<li>Generate finance reports for stakeholders  </li>
+<li>Automate recurring monthly costs (porter salary, utilities, maintenance)</li>
+</ol>
+<p>This mirrors Panasonic&#39;s challenge: business teams need a finance planning application for <strong>analysis, forecasting, and operating profit estimation</strong> — not just data entry.</p>
+<hr>
+<h2>3. Technology Stack Alignment</h2>
+<table>
+<thead>
+<tr>
+<th>Panasonic Requirement</th>
+<th>Villa Manager Pro Implementation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>.NET Core 8.0</strong> (Backend)</td>
+<td>ASP.NET Core 8.0 REST API with layered architecture (Controllers → Services → Repositories), JWT authentication, role-based authorization, API versioning (<code>/api/v1/</code>)</td>
+</tr>
+<tr>
+<td><strong>Angular 19 + DevExtreme</strong> (Frontend)</td>
+<td>Angular 19 SPA with DevExtreme DataGrid, charts, form controls, and responsive mobile-first layout for finance screens</td>
+</tr>
+<tr>
+<td><strong>SQL Server 2022</strong> (Database)</td>
+<td>Normalized schema for properties, units, payments, expenses, templates, users, and audit-friendly financial transactions</td>
+</tr>
+<tr>
+<td><strong>Azure Cloud + CI/CD</strong></td>
+<td>Azure App Service (API), Azure SQL Database, Azure DevOps / GitHub Actions pipelines for automated build, test, and deployment</td>
+</tr>
+<tr>
+<td><strong>Power Apps</strong> (Mobile)</td>
+<td>Power Apps companion app for on-site expense capture, payment status checks, and approval notifications via custom connectors to .NET API</td>
+</tr>
+</tbody></table>
+<h3>Architecture Diagram</h3>
+<pre><code>┌──────────────────────────────────────────────────────────────────────┐
+│                           CLIENT LAYER                                │
+├─────────────────────┬──────────────────────┬────────────────────────┤
+│  Angular 19 +        │  Angular Responsive   │  Power Apps Mobile     │
+│  DevExtreme Web App  │  (Mobile UI)          │  (Field Workflows)     │
+└──────────┬──────────┴──────────┬───────────┴──────────┬───────────────┘
+           │                     │                      │
+           └─────────────────────┼──────────────────────┘
+                                 │  HTTPS / REST API
+                       ┌─────────▼─────────┐
+                       │  .NET Core 8.0 API │
+                       │  JWT + RBAC        │
+                       └─────────┬─────────┘
+                                 │
+                       ┌─────────▼─────────┐
+                       │  SQL Server 2022   │
+                       │  (Azure SQL)       │
+                       └───────────────────┘
+</code></pre>
+<hr>
+<h2>4. Feature Walkthrough with Screenshots</h2>
+<p>Each section below shows a screenshot, describes the functionality, and maps it directly to Panasonic MEA Phase II requirements.</p>
+<hr>
+<h3>4.1 Secure Authentication &amp; Role-Based Access</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/login-screen.png" alt="Login Screen" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Login screen — Villa Manager Pro branding with Email/Password authentication and registration flow.</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>JWT-based secure login via .NET Core 8.0 API</td>
+<td>Enterprise security for finance applications</td>
+</tr>
+<tr>
+<td>Role-based access (General Manager, Villa Manager, Viewer)</td>
+<td>Multi-team access control for business planning</td>
+</tr>
+<tr>
+<td>Registration &amp; invite-based onboarding</td>
+<td>User provisioning for finance stakeholders</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular 19 auth module + .NET Core Identity/JWT middleware + SQL Server user tables.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>SSO integration with Azure AD  </li>
+<li>Role mapping to finance teams (Analyst, Approver, Admin)  </li>
+<li>Audit log of login sessions</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.2 Financial Planning Dashboard (Business Plan Analysis)</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/dashboard.png" alt="Finance Dashboard" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Dashboard showing Total Units (8), Occupied (6), Collected (EGP 10,967.13), Expenses (EGP 5,320), Quick Actions, and All Properties list.</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Real-time KPI cards: revenue, costs, occupancy</td>
+<td><strong>Business plan analysis</strong> — portfolio snapshot</td>
+</tr>
+<tr>
+<td>Multi-property list with location metadata</td>
+<td>Multi-entity / multi-region planning</td>
+</tr>
+<tr>
+<td>Net income = Collected − Expenses (visible in Financial Summary)</td>
+<td><strong>Operating profit estimation</strong></td>
+</tr>
+<tr>
+<td>Property switcher for context-based analysis</td>
+<td>Cost center / profit center switching</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular 19 dashboard component with DevExtreme chart widgets; .NET API aggregates data from SQL Server via stored procedures / EF Core queries.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Add YoY comparison widgets  </li>
+<li>Drill-down from KPI card to detailed P&amp;L  </li>
+<li>Budget vs Actual variance indicators on each card</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.3 Multi-Entity Property Switching</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/switch-property.png" alt="Switch Property" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Switch Property modal — 8 properties (Villas &amp; Buildings) across Giza, Cairo, Alexandria, Sohag with active selection (Zain Residency).</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Switch active property/entity context</td>
+<td>Multi-business-unit planning (MEA regions)</td>
+</tr>
+<tr>
+<td>Property types: Villa, Building</td>
+<td>Entity classification</td>
+</tr>
+<tr>
+<td>Add New Property workflow</td>
+<td>Master data management</td>
+</tr>
+<tr>
+<td>Selected property drives all finance screens</td>
+<td>Context-aware financial data isolation</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular state management (service/store) + .NET multi-tenant API filtering by <code>villaId</code>.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Hierarchical entity tree (Region → Country → Business Unit)  </li>
+<li>Consolidated view across all entities  </li>
+<li>Entity-level budget targets</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.4 Unit / Cost Center Management (Apartments)</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/apartments-list.png" alt="Apartments List" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Apartments (8) — list with owner, tenant, phone, opening balance, current balance, status badges (Active/Vacant), Edit/Statement/Delete actions, CSV export.</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Unit master data with opening balances</td>
+<td>Cost center setup in planning application</td>
+</tr>
+<tr>
+<td>Status tracking (Active, Vacant, Maintenance)</td>
+<td>Capacity / utilization planning</td>
+</tr>
+<tr>
+<td>Per-unit balance tracking</td>
+<td>Profit center balance management</td>
+</tr>
+<tr>
+<td>CSV export for external systems</td>
+<td>Data integration &amp; reporting</td>
+</tr>
+<tr>
+<td>Search and filter</td>
+<td>Large dataset navigation (DevExtreme grid pattern)</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular 19 + DevExtreme DataGrid equivalent card layout; .NET CRUD API; SQL Server apartment tables with balance computed columns.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Import units from Excel (DevExtreme upload)  </li>
+<li>Link units to budget line items  </li>
+<li>Unit-level forecast projections</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.5 Unit-Level Financial Statement (P&amp;L per Cost Center)</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/apartment-statement.png" alt="Apartment Statement" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Statement for Apartment 4033 — Allocated (EGP 637.5), Paid (EGP 857.14), Balance (EGP 0), with ledger entries (Opening balance, Expenses, Cash payments).</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Per-unit allocated expenses</td>
+<td>Cost allocation in business planning</td>
+</tr>
+<tr>
+<td>Payment credits applied</td>
+<td>Revenue recognition per cost center</td>
+</tr>
+<tr>
+<td>Running balance calculation</td>
+<td><strong>Operating profit per unit</strong></td>
+</tr>
+<tr>
+<td>Transaction-level drill-down</td>
+<td>Detailed plan vs actual analysis</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> .NET service layer computes allocation logic (equal split, custom split); Angular renders statement modal with DevExtreme chart for visual breakdown.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Budget column alongside actual column  </li>
+<li>Variance % highlighting (red/green)  </li>
+<li>Export statement to PDF for stakeholder review</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.6 Expense Management &amp; Cost Tracking</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/expenses-list.png" alt="Expenses List" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Expenses (6) — Total EGP 5,320, categorized entries (Porter Salary, Electricity, Water), per-apartment allocation, Templates &amp; CSV buttons.</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Record operational expenses with categories</td>
+<td><strong>Budget actuals entry</strong></td>
+</tr>
+<tr>
+<td>20+ expense categories (utilities, maintenance, admin)</td>
+<td>Cost category dimension in planning</td>
+</tr>
+<tr>
+<td>Per-unit or shared expense tagging</td>
+<td>Cost center attribution</td>
+</tr>
+<tr>
+<td>Search, edit, delete with permissions</td>
+<td>Finance data governance</td>
+</tr>
+<tr>
+<td>CSV export</td>
+<td>Period-close reporting</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular form components + DevExtreme dropdowns; .NET expense API with category lookup tables in SQL Server.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Approval workflow before expense posting  </li>
+<li>Link expenses to budget line items  </li>
+<li>Multi-currency expense entry</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.7 Cost Allocation Engine (Split Logic)</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/expense-split.png" alt="Expense Split" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Edit Expense modal — Split Type dropdown: All apartments (equal), Single apartment, Selected apartments (equal), Selected apartments (custom amounts).</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Equal split across all units</td>
+<td>Shared cost distribution (overhead allocation)</td>
+</tr>
+<tr>
+<td>Single unit assignment</td>
+<td>Direct cost assignment</td>
+</tr>
+<tr>
+<td>Selected units with equal split</td>
+<td>Departmental cost sharing</td>
+</tr>
+<tr>
+<td>Custom amount per unit</td>
+<td>Manual allocation override</td>
+</tr>
+<tr>
+<td>Same engine for payments and expenses</td>
+<td>Reusable allocation framework</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> .NET Core business logic service (<code>SplitAllocationService</code>) — this is a <strong>key differentiator</strong> demonstrating functional finance understanding, not just CRUD.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Allocation rules by % (e.g., 40/30/30 split)  </li>
+<li>Driver-based allocation (headcount, revenue share)  </li>
+<li>Allocation template library</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.8 Recurring Expense Templates (Budget Automation)</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/recurring-templates.png" alt="Recurring Templates" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Recurring Templates — Add Template form with name, amount, day of month, description, allocation (All apartments / per apt), 16+ categories, Active status, &quot;Run due now&quot; button.</p>
+<table>
+<thead>
+<tr>
+<th>What It Does</th>
+<th>Panasonic Requirement Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Define monthly recurring cost templates</td>
+<td><strong>Budget line item setup</strong></td>
+</tr>
+<tr>
+<td>Schedule by day of month</td>
+<td>Budget period automation</td>
+</tr>
+<tr>
+<td>Category assignment</td>
+<td>Budget category mapping</td>
+</tr>
+<tr>
+<td>Active/Paused status</td>
+<td>Budget version control</td>
+</tr>
+<tr>
+<td>&quot;Run due now&quot; — generate actuals from budget</td>
+<td><strong>Budget-to-actual generation</strong></td>
+</tr>
+<tr>
+<td>Allocation to all or selected units</td>
+<td>Distributed budget planning</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> .NET background job / scheduled task generates expenses from templates; SQL Server <code>ExpenseTemplates</code> table with <code>lastGeneratedForMonth</code> tracking.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Annual budget templates with monthly breakdown  </li>
+<li>Budget revision history  </li>
+<li>Forecast roll-forward from templates</li>
+</ul>
+<hr>
+<div class="page-break"></div><h3>4.9 Financial Reports &amp; Analysis — Full Ledger</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/reports-ledger.png" alt="Reports Ledger" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Reports — Total Expenses (EGP 5,320), Total Collected (EGP 10,967.13), Cash Balance (EGP 5,647.13), Total Unpaid (EGP 1,275), Full Ledger tab with running balance.</p>
+<hr>
+<div class="page-break"></div><h3>4.10 Financial Reports &amp; Analysis — Monthly View</h3>
+<figure class="screenshot-figure"><img src="./assets/pdf/reports-monthly.png" alt="Reports Monthly" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></figure><p><strong>Screenshot:</strong> Reports — Monthly tab showing 2026-07: Expenses EGP 5,320, Collected EGP 10,967.13, Net EGP 5,647.13.</p>
+<table>
+<thead>
+<tr>
+<th>Report Type</th>
+<th>What It Shows</th>
+<th>Panasonic Mapping</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Balance Sheet</strong></td>
+<td>Per-unit opening, allocated, paid, outstanding</td>
+<td>Unit P&amp;L / balance sheet view</td>
+</tr>
+<tr>
+<td><strong>Full Ledger</strong></td>
+<td>Chronological transactions with running balance</td>
+<td>General ledger / journal</td>
+</tr>
+<tr>
+<td><strong>Monthly</strong></td>
+<td>Expenses vs collected by month with net</td>
+<td><strong>Monthly actuals &amp; variance analysis</strong></td>
+</tr>
+<tr>
+<td><strong>Category</strong></td>
+<td>Spend breakdown by expense category</td>
+<td>Cost category analysis</td>
+</tr>
+<tr>
+<td><strong>CSV Export</strong></td>
+<td>Downloadable data for finance teams</td>
+<td>External system integration</td>
+</tr>
+<tr>
+<td><strong>Print</strong></td>
+<td>Stakeholder-ready output</td>
+<td>Management reporting</td>
+</tr>
+</tbody></table>
+<p><strong>Tech:</strong> Angular 19 tabbed report component; DevExtreme PivotGrid / DataGrid for tabular views; .NET reporting API with SQL Server aggregation queries.</p>
+<p><strong>How to extend for Panasonic:</strong></p>
+<ul>
+<li>Budget vs Actual column in Monthly report  </li>
+<li>DevExtreme chart widgets (bar, line, pie) for visual analysis  </li>
+<li>Scheduled email reports via Azure Functions</li>
+</ul>
+<hr>
+<h2>5. Complete Feature-to-Requirement Mapping Table</h2>
+<h3>5.1 Finance Features (Primary — Directly Maps to Panasonic)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Villa Manager Feature</th>
+<th>Panasonic Phase II Requirement</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Financial Dashboard with KPIs</td>
+<td>Business plan analysis</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Net Income calculation (Collected − Expenses)</td>
+<td>Operating profit estimation</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Recurring Expense Templates</td>
+<td>Budgeting &amp; budget line setup</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Template &quot;Run due now&quot; automation</td>
+<td>Budget-to-actual generation</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Monthly trend report</td>
+<td>Forecasting &amp; period analysis</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Category-wise expense breakdown</td>
+<td>Cost category analysis</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Cost allocation / split engine</td>
+<td>Cost center allocation rules</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Unit-level balance &amp; statement</td>
+<td>Profit center P&amp;L</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Full ledger with running balance</td>
+<td>General ledger reporting</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>10</td>
+<td>CSV export on all finance screens</td>
+<td>Data export &amp; integration</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Multi-property switcher</td>
+<td>Multi-entity planning</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Payment tracking with status</td>
+<td>Revenue actuals management</td>
+<td>✅ Implemented</td>
+</tr>
+</tbody></table>
+<h3>5.2 Platform Features (Supporting — Maps to Application Development Scope)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Villa Manager Feature</th>
+<th>Panasonic / Enterprise Requirement</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>13</td>
+<td>JWT authentication + RBAC</td>
+<td>Enterprise security</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Role-based permissions (GM, Manager, Viewer)</td>
+<td>Multi-team access control</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>15</td>
+<td>User invite &amp; onboarding flow</td>
+<td>User provisioning</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Push notifications</td>
+<td>Workflow alerts</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Service requests module</td>
+<td>Operational workflow</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>18</td>
+<td>Vendor management</td>
+<td>Supplier master data</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Document management</td>
+<td>File storage &amp; control</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>20</td>
+<td>English + Arabic (RTL)</td>
+<td>MEA localization</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Subscription/license management</td>
+<td>SaaS license control</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Search &amp; filter on all lists</td>
+<td>Large dataset UX (DevExtreme)</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Dark/Light theme</td>
+<td>User preferences</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>24</td>
+<td>API versioning (<code>/api/v1/</code>)</td>
+<td>API governance</td>
+<td>✅ Implemented</td>
+</tr>
+</tbody></table>
+<h3>5.3 Features to Position for Phase II (Not Yet Built — Proposed Enhancements)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Proposed Feature</th>
+<th>Panasonic Requirement It Addresses</th>
+<th>Effort</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>25</td>
+<td>Budget vs Actual variance dashboard</td>
+<td>Budget variance analysis</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>26</td>
+<td>YoY / MoM comparison charts (DevExtreme)</td>
+<td>Trend forecasting</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>27</td>
+<td>Approval workflow for expenses/budgets</td>
+<td>Finance governance</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Azure AD SSO integration</td>
+<td>Enterprise identity</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>29</td>
+<td>Excel import/export (DevExtreme)</td>
+<td>Data migration &amp; bulk entry</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>30</td>
+<td>Scheduled report emails (Azure Functions)</td>
+<td>Automated stakeholder reporting</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>31</td>
+<td>Multi-currency support</td>
+<td>MEA regional operations</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>32</td>
+<td>Hierarchical entity tree (Region → BU)</td>
+<td>Organizational planning structure</td>
+<td>High</td>
+</tr>
+<tr>
+<td>33</td>
+<td>Driver-based cost allocation</td>
+<td>Advanced allocation rules</td>
+<td>High</td>
+</tr>
+<tr>
+<td>34</td>
+<td>Budget version control &amp; revision history</td>
+<td>Planning cycle management</td>
+<td>High</td>
+</tr>
+<tr>
+<td>35</td>
+<td>Power Apps offline expense capture</td>
+<td>Field mobile workflows</td>
+<td>Low</td>
+</tr>
+<tr>
+<td>36</td>
+<td>DevExtreme PivotGrid for ad-hoc analysis</td>
+<td>Self-service business analysis</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>37</td>
+<td>Audit trail on all financial changes</td>
+<td>Compliance &amp; traceability</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>38</td>
+<td>Dashboard widgets configurable by user</td>
+<td>Personalized business planning views</td>
+<td>Medium</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Why This Experience Maps to Panasonic MEA</h2>
+<h3>6.1 Same Domain, Same Workflows</h3>
+<table>
+<thead>
+<tr>
+<th>Panasonic Finance Planning Workflow</th>
+<th>Villa Manager Equivalent</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Set annual/monthly budget</td>
+<td>Create recurring expense templates</td>
+</tr>
+<tr>
+<td>Record actual revenue</td>
+<td>Record payments with status tracking</td>
+</tr>
+<tr>
+<td>Record actual costs</td>
+<td>Record expenses with categories</td>
+</tr>
+<tr>
+<td>Allocate shared costs</td>
+<td>Split engine (equal / custom / selected)</td>
+</tr>
+<tr>
+<td>Analyze operating profit</td>
+<td>Dashboard net income + monthly report</td>
+</tr>
+<tr>
+<td>Report to stakeholders</td>
+<td>Balance, ledger, monthly, category reports</td>
+</tr>
+<tr>
+<td>Multi-entity planning</td>
+<td>Multi-property switcher with portfolio view</td>
+</tr>
+</tbody></table>
+<h3>6.2 Technical Depth Across Full Stack</h3>
+<p>We have delivered production code in <strong>every technology Panasonic requires</strong>:</p>
+<ul>
+<li><strong>.NET Core 8.0</strong> — REST API, business logic, JWT, RBAC, CSV export endpoints  </li>
+<li><strong>Angular 19 + DevExtreme</strong> — Dashboard, grids, forms, reports, responsive mobile UI  </li>
+<li><strong>SQL Server 2022</strong> — Normalized financial schema, computed balances, template scheduling  </li>
+<li><strong>Azure + CI/CD</strong> — Cloud-hosted API and database with automated deployment pipelines  </li>
+<li><strong>Power Apps</strong> — Mobile companion for field expense entry and notifications</li>
+</ul>
+<h3>6.3 Functional Understanding (Not Just Coding)</h3>
+<p>Panasonic flagged that their previous partner lacked <strong>functional business analysts</strong>. Villa Manager Pro was designed with:</p>
+<ol>
+<li><strong>Domain-first finance logic</strong> — allocation engine, recurring templates, balance computation  </li>
+<li><strong>Stakeholder-ready reports</strong> — not developer dumps, but balance sheet, ledger, monthly P&amp;L  </li>
+<li><strong>Real-world MEA context</strong> — Arabic RTL, EGP currency, multi-property portfolios  </li>
+<li><strong>Role-based workflows</strong> — GM sees all properties, managers see their villa, viewers read-only</li>
+</ol>
+<hr>
+<h2>7. Demo Script for Panasonic Stakeholders</h2>
+<p>Use this flow for a 15-minute demo aligned to finance planning use cases:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Screen</th>
+<th>Talking Point</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Login</td>
+<td>&quot;Secure enterprise authentication with role-based access&quot;</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Dashboard</td>
+<td>&quot;Business plan snapshot — revenue, costs, net profit across portfolio&quot;</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Switch Property</td>
+<td>&quot;Multi-entity context switching — like switching between MEA business units&quot;</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Apartments</td>
+<td>&quot;Cost center setup with opening balances and status tracking&quot;</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Statement (Apartment 4033)</td>
+<td>&quot;Unit-level P&amp;L — allocated costs, payments, running balance&quot;</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Expenses</td>
+<td>&quot;Actual cost entry with 20+ categories and per-unit attribution&quot;</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Expense Split</td>
+<td>&quot;Cost allocation engine — equal, selected, or custom split across units&quot;</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Recurring Templates</td>
+<td>&quot;Budget automation — define monthly costs, run on schedule&quot;</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Reports → Monthly</td>
+<td>&quot;Period analysis — expenses vs collected with net result&quot;</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Reports → Full Ledger</td>
+<td>&quot;Audit-ready transaction journal with running balance&quot;</td>
+</tr>
+<tr>
+<td>11</td>
+<td>CSV Export</td>
+<td>&quot;Data export for finance teams and external systems&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. Key Metrics &amp; Outcomes</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Properties managed</td>
+<td>8+ villas/buildings</td>
+</tr>
+<tr>
+<td>Apartments/units tracked</td>
+<td>8+ per property</td>
+</tr>
+<tr>
+<td>Expense categories</td>
+<td>20+</td>
+</tr>
+<tr>
+<td>Report types</td>
+<td>4 (Balance, Ledger, Monthly, Category)</td>
+</tr>
+<tr>
+<td>Split allocation modes</td>
+<td>4 (All equal, Single, Selected equal, Custom)</td>
+</tr>
+<tr>
+<td>User roles</td>
+<td>3 (General Manager, Villa Manager, Viewer)</td>
+</tr>
+<tr>
+<td>Languages</td>
+<td>2 (English, Arabic)</td>
+</tr>
+<tr>
+<td>API endpoints</td>
+<td>40+ REST endpoints</td>
+</tr>
+<tr>
+<td>Export formats</td>
+<td>CSV (all finance modules)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>9. Conclusion</h2>
+<p>Villa Manager Pro demonstrates end-to-end delivery of a <strong>finance planning and budgeting platform</strong> using the <strong>complete Panasonic Phase II technology stack</strong>:</p>
+<blockquote>
+<p><strong>.NET Core 8.0</strong> · <strong>Angular 19 + DevExtreme</strong> · <strong>SQL Server 2022</strong> · <strong>Azure Cloud + CI/CD</strong> · <strong>Power Apps</strong></p>
+</blockquote>
+<p>The solution implements <strong>business plan analysis, cost budgeting, revenue tracking, cost allocation, forecasting via recurring templates, operating profit estimation, and multi-entity reporting</strong> — directly aligned with Panasonic MEA&#39;s Finance Planning &amp; Budgeting application requirements.</p>
+<p>We bring both <strong>technical depth</strong> (full-stack delivery across all required technologies) and <strong>functional understanding</strong> (finance planning workflows, allocation logic, stakeholder reporting) — addressing the exact gap Panasonic identified with their previous implementation partner.</p>
+<hr>
+<h2>Appendix: Screenshot Index</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Screenshot</th>
+<th>File</th>
+<th>Module</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Login Screen</td>
+<td><code>login-screen.png</code></td>
+<td>Authentication</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Finance Dashboard</td>
+<td><code>dashboard.png</code></td>
+<td>Dashboard / Business Plan Analysis</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Switch Property</td>
+<td><code>switch-property.png</code></td>
+<td>Multi-Entity Management</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Apartment Statement</td>
+<td><code>apartment-statement.png</code></td>
+<td>Unit P&amp;L / Cost Center</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Apartments List</td>
+<td><code>apartments-list.png</code></td>
+<td>Cost Center Master Data</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Reports — Full Ledger</td>
+<td><code>reports-ledger.png</code></td>
+<td>Financial Reporting</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Reports — Monthly</td>
+<td><code>reports-monthly.png</code></td>
+<td>Period Analysis / Forecasting</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Expenses List</td>
+<td><code>expenses-list.png</code></td>
+<td>Cost Tracking / Actuals</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Expense Split Logic</td>
+<td><code>expense-split.png</code></td>
+<td>Cost Allocation Engine</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Recurring Templates</td>
+<td><code>recurring-templates.png</code></td>
+<td>Budget Automation</td>
+</tr>
+</tbody></table>
+<hr>
+<p><em>Document prepared for internal team presentation and Panasonic MEA Phase II proposal.</em><br><em>Villa Manager Pro — Finance &amp; Operations Management Platform</em></p>
+</body>
+</html>
