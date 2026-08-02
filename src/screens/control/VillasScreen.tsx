@@ -6,13 +6,7 @@ import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { confirmAction } from '../../utils/confirm';
 import DateInput from '../../components/DateInput';
-
-const EGYPT_REGIONS = [
-  'Cairo', 'Giza', 'Alexandria', 'Aswan', 'Asyut', 'Beheira', 'Beni Suef',
-  'Dakahlia', 'Damietta', 'Faiyum', 'Gharbia', 'Ismailia', 'Kafr El Sheikh',
-  'Luxor', 'Matruh', 'Minya', 'Monufia', 'New Valley', 'North Sinai',
-  'Port Said', 'Qalyubia', 'Qena', 'Red Sea', 'Sharqia', 'Sohag', 'South Sinai', 'Suez',
-];
+import RegionPicker from '../../components/RegionPicker';
 const PROPERTY_TYPES = ['VILLA', 'BUILDING'];
 const emptyForm = { name: '', propertyType: 'VILLA', propertyNumber: '', region: '', whatsappLink: '', location: '', description: '', subscriptionExpiresAt: '', maxViewers: '5' };
 
@@ -40,12 +34,10 @@ export default function VillasScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showTypeDD, setShowTypeDD] = useState(false);
-  const [showRegionDD, setShowRegionDD] = useState(false);
   const [editingVilla, setEditingVilla] = useState<any>(null);
   const [editForm, setEditForm] = useState<any>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [showEditTypeDD, setShowEditTypeDD] = useState(false);
-  const [showEditRegionDD, setShowEditRegionDD] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -165,8 +157,7 @@ export default function VillasScreen() {
           <Text style={styles.label}>Number</Text>
           <TextInput style={styles.input} value={form.propertyNumber} onChangeText={(v) => setForm({ ...form, propertyNumber: v })} placeholder="e.g. V-101" placeholderTextColor={theme.muted} />
           <Text style={styles.label}>Region *</Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowRegionDD(!showRegionDD)}><Text style={[styles.dropdownText, !form.region && { color: theme.muted }]}>{form.region || 'Select region'}</Text><Ionicons name={showRegionDD ? 'chevron-up' : 'chevron-down'} size={16} color={theme.muted} /></TouchableOpacity>
-          {showRegionDD && <ScrollView style={styles.dropdownMenu} nestedScrollEnabled>{EGYPT_REGIONS.map((r) => <TouchableOpacity key={r} style={styles.dropdownItem} onPress={() => { setForm({ ...form, region: r }); setShowRegionDD(false); }}><Text style={[styles.dropdownItemText, form.region === r && { color: theme.primary, fontWeight: '900' }]}>{r}</Text></TouchableOpacity>)}</ScrollView>}
+          <RegionPicker value={form.region} onChange={(region) => setForm({ ...form, region })} />
           <Text style={styles.label}>WhatsApp Group Link</Text>
           <TextInput style={styles.input} value={form.whatsappLink} onChangeText={(v) => setForm({ ...form, whatsappLink: v })} placeholder="https://chat.whatsapp.com/..." placeholderTextColor={theme.muted} autoCapitalize="none" />
           <Text style={styles.label}>Location / Address</Text>
@@ -196,8 +187,7 @@ export default function VillasScreen() {
                   <Text style={styles.label}>Number</Text>
                   <TextInput style={styles.input} value={editForm.propertyNumber} onChangeText={(v) => setEditForm({ ...editForm, propertyNumber: v })} placeholderTextColor={theme.muted} />
                   <Text style={styles.label}>Region</Text>
-                  <TouchableOpacity style={styles.dropdown} onPress={() => setShowEditRegionDD(!showEditRegionDD)}><Text style={[styles.dropdownText, !editForm.region && { color: theme.muted }]}>{editForm.region || 'Select region'}</Text><Ionicons name={showEditRegionDD ? 'chevron-up' : 'chevron-down'} size={16} color={theme.muted} /></TouchableOpacity>
-                  {showEditRegionDD && <ScrollView style={styles.dropdownMenu} nestedScrollEnabled>{EGYPT_REGIONS.map((r) => <TouchableOpacity key={r} style={styles.dropdownItem} onPress={() => { setEditForm({ ...editForm, region: r }); setShowEditRegionDD(false); }}><Text style={[styles.dropdownItemText, editForm.region === r && { color: theme.primary, fontWeight: '900' }]}>{r}</Text></TouchableOpacity>)}</ScrollView>}
+                  <RegionPicker value={editForm.region} onChange={(region) => setEditForm({ ...editForm, region })} />
                   <Text style={styles.label}>WhatsApp Group Link</Text>
                   <TextInput style={styles.input} value={editForm.whatsappLink} onChangeText={(v) => setEditForm({ ...editForm, whatsappLink: v })} placeholderTextColor={theme.muted} autoCapitalize="none" />
                   <Text style={styles.label}>Location</Text>
