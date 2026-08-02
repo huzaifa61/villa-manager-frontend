@@ -263,23 +263,43 @@ const ApartmentsScreen = () => {
       .sort((a, b) => String(b.date).localeCompare(String(a.date)));
   }, [apartments.length, expenses, payments, timelineApartment]);
 
+  const apartmentFinance = (apartment: Apartment) => {
+    const globalShare = apartments.length
+      ? expenses.filter((e) => !e.apartmentId).reduce((sum, e) => sum + Number(e.amount || 0), 0) / apartments.length
+      : 0;
+    const directExpenses = expenses
+      .filter((e) => e.apartmentId === apartment.id)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const allocated = globalShare + directExpenses;
+    const paid = payments
+      .filter((p) => p.apartmentId === apartment.id)
+      .filter((p) => isPaymentPaid(p.status))
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const balance = balanceFromPaymentExpense(apartment.openingBalance, paid, allocated);
+    return { allocated, paid, balance };
+  };
+
   const exportApartments = async () => {
     const villaName = await getActiveVillaName(villaId);
     await runCsvExport(t, () => apiService.exportApartmentsCsv(villaId), {
       filename: 'apartments.csv',
-      headers: ['ID', 'Apartment', 'Owner', 'Tenant', 'Phone', 'Status', 'Opening Balance', 'Current Balance', 'Type', 'Created At'],
-      rows: filteredApartments.map((a) => [
-        a.id,
-        a.apartmentNumber,
-        a.ownerName,
-        a.tenantName,
-        a.phoneNumber,
-        a.status,
-        a.openingBalance,
-        a.currentBalance,
-        a.apartmentType,
-        a.createdAt,
-      ]),
+      headers: ['ID', 'Apartment', 'Owner', 'Tenant', 'Phone', 'Status', 'Opening Balance', 'Allocated', 'Paid', 'Balance', 'Type'],
+      rows: filteredApartments.map((a) => {
+        const finance = apartmentFinance(a);
+        return [
+          a.id,
+          a.apartmentNumber,
+          a.ownerName,
+          a.tenantName,
+          a.phoneNumber,
+          a.status,
+          a.openingBalance,
+          finance.allocated,
+          finance.paid,
+          finance.balance,
+          a.apartmentType,
+        ];
+      }),
       options: { title: 'Apartments Report', villaName },
     });
   };
