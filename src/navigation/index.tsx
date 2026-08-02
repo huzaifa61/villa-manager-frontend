@@ -33,11 +33,12 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const useHeaderOpts = () => {
-  const { theme } = useAppPreferences();
+  const { theme, direction } = useAppPreferences();
   return {
     headerStyle: { backgroundColor: theme.header },
     headerTintColor: theme.text,
     headerTitleStyle: { fontWeight: '600' as const },
+    direction,
   };
 };
 
@@ -50,7 +51,7 @@ const FinanceStack = () => {
     <Stack.Screen name="Apartments" component={ApartmentsScreen} options={{ title: t('apartments') }} />
     <Stack.Screen name="Payments" component={PaymentsScreen} options={{ title: t('payments') }} />
     <Stack.Screen name="Expenses" component={ExpensesScreen} options={{ title: t('expenses') }} />
-    <Stack.Screen name="Villas" component={VillasScreen} options={{ title: 'Properties' }} />
+    <Stack.Screen name="Villas" component={VillasScreen} options={{ title: t('properties') }} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
   );
@@ -82,11 +83,11 @@ const ControlStack = () => {
   return (
   <Stack.Navigator id="ControlStack" screenOptions={headerOpts}>
     <Stack.Screen name="Control" component={ControlScreen} options={{ title: t('control') }} />
-    <Stack.Screen name="Villas" component={VillasScreen} />
+    <Stack.Screen name="Villas" component={VillasScreen} options={{ title: t('properties') }} />
     <Stack.Screen name="VillaMembers" component={VillaMembersScreen} options={{ title: t('villaMembers') }} />
-    <Stack.Screen name="Vendors" component={VendorsScreen} />
-    <Stack.Screen name="Documents" component={DocumentsScreen} />
-    <Stack.Screen name="Backups" component={BackupsScreen} />
+    <Stack.Screen name="Vendors" component={VendorsScreen} options={{ title: t('vendorsTitle') }} />
+    <Stack.Screen name="Documents" component={DocumentsScreen} options={{ title: t('documentsTitle') }} />
+    <Stack.Screen name="Backups" component={BackupsScreen} options={{ title: t('backupsTitle') }} />
     <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('settings') }} />
     <Stack.Screen name="HelpGuide" component={HelpGuideScreen} options={{ title: t('helpGuide') }} />
   </Stack.Navigator>
@@ -150,7 +151,7 @@ const Splash = () => {
 };
 
 export const Navigation = ({ isAuthenticated, isLoading }: { isAuthenticated: boolean; isLoading: boolean }) => {
-  const { theme } = useAppPreferences();
+  const { theme, direction } = useAppPreferences();
   const { activeVillaId } = useSelector((s: RootState) => s.auth);
   const auth = useSelector((s: RootState) => s.auth);
 
@@ -184,7 +185,7 @@ export const Navigation = ({ isAuthenticated, isLoading }: { isAuthenticated: bo
   };
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} direction={direction}>
       {renderContent()}
     </NavigationContainer>
   );
