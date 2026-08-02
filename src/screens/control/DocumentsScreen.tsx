@@ -148,8 +148,6 @@ export default function DocumentsScreen() {
         </View>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportDocuments}
             onPdf={exportDocumentsPdf}
           />

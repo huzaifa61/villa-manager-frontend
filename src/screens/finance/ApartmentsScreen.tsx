@@ -322,8 +322,6 @@ const ApartmentsScreen = () => {
         <Text style={styles.title}>{t('apartmentsTitle')} ({filteredApartments.length})</Text>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportApartments}
             onPdf={exportApartmentsPdf}
           />

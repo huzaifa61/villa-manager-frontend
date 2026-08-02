@@ -164,8 +164,6 @@ export default function ServiceRequestsScreen() {
         </View>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportRequests}
             onPdf={exportRequestsPdf}
           />

@@ -180,8 +180,6 @@ export default function VendorsScreen() {
         </View>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportVendors}
             onPdf={exportVendorsPdf}
           />

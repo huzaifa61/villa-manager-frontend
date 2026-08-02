@@ -359,8 +359,6 @@ const ExpensesScreen = () => {
             <Text style={styles.exportText}>{t('templates')}</Text>
           </TouchableOpacity> : null}
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportExpenses}
             onPdf={exportExpensesPdf}
           />

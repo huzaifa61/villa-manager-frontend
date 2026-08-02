@@ -257,8 +257,6 @@ const PaymentsScreen = () => {
         </View>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportPayments}
             onPdf={exportPaymentsPdf}
           />

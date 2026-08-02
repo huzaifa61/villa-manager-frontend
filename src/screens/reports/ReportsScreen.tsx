@@ -206,8 +206,6 @@ export default function ReportsScreen() {
         <Text style={styles.title}>{t('reportsTitle')}</Text>
         <View style={styles.headerActions}>
           <ExportButtons
-            theme={theme}
-            t={t}
             onCsv={exportReport}
             onPdf={exportReportPdf}
           />
