@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { apiService } from '../../services/api';
 import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
 import {
@@ -18,22 +19,25 @@ import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
 import DateInput from '../../components/DateInput';
+import { formatT, translateEnum } from '../../i18n/helpers';
 
 const STORAGE_KEY = 'villa-documents-v1';
+const DOCUMENT_TYPES = ['Receipt', 'Contract', 'Warranty', 'Permit', 'Insurance', 'Other'];
 const emptyDocument = { title: '', type: 'Receipt', link: '', renewalDate: '', notes: '' };
-const types = ['Receipt', 'Contract', 'Warranty', 'Permit', 'Insurance', 'Other'];
 
 export default function DocumentsScreen() {
-  const { theme, t } = useAppPreferences();
+  const { theme, t, textAlign, rowDirection, direction } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const villaId = activeVillaId || user?.villaId || null;
   const permissions = permissionsFor(user);
-  const styles = makeStyles(theme);
+  const styles = makeStyles(theme, textAlign, rowDirection, direction);
   const [documents, setDocuments] = useState<any[]>([]);
   const [query, setQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyDocument);
+
+  const translateDocType = (type: string) => translateEnum(t, 'doc_type', type, type);
 
   const loadDocuments = useCallback(async () => {
     const saved = await AsyncStorage.getItem(STORAGE_KEY);
@@ -54,7 +58,7 @@ export default function DocumentsScreen() {
 
   const saveDocument = async () => {
     if (!form.title.trim()) {
-      Alert.alert('Title required', 'Please add a document title.');
+      Alert.alert(t('documentTitleRequired'), t('addDocumentTitleBody'));
       return;
     }
     const item = {
@@ -77,15 +81,15 @@ export default function DocumentsScreen() {
 
   const deleteDocument = (doc: any) => {
     confirmAction({
-      title: 'Delete document?',
-      message: doc.title + ' will be removed.',
+      title: t('deleteDocumentTitle'),
+      message: formatT(t('willBeRemoved'), { name: doc.title }),
       onConfirm: () => saveAll(documents.filter((item) => item.id !== doc.id)),
     });
   };
 
   const documentsExportBody = (): TableExportPayload => ({
     fileName: 'documents',
-    title: 'Documents',
+    title: t('documentsTitle'),
     sheetName: 'Documents',
     headers: ['Title', 'Type', 'Link / Reference', 'Renewal Date', 'Notes', 'Updated At'],
     rows: filtered.map((doc) => [doc.title, doc.type, doc.link, doc.renewalDate, doc.notes, doc.updatedAt]),
@@ -95,7 +99,7 @@ export default function DocumentsScreen() {
     if (!villaId) {
       const body = documentsExportBody();
       const villaName = await getActiveVillaName(villaId);
-      await exportCsv('documents.csv', body.headers, body.rows, { title: 'Documents', villaName });
+      await exportCsv('documents.csv', body.headers, body.rows, { title: t('documentsTitle'), villaName });
       return;
     }
     const body = documentsExportBody();
@@ -107,7 +111,7 @@ export default function DocumentsScreen() {
       filename: 'documents.csv',
       headers: body.headers,
       rows: body.rows,
-      options: { title: 'Documents', villaName },
+      options: { title: t('documentsTitle'), villaName },
     });
   };
 
@@ -122,65 +126,101 @@ export default function DocumentsScreen() {
     );
   };
 
+  const restrictedView = (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{t('documentsTitle')}</Text>
+          <Text style={styles.subtitle}>{t('sectionManagersOnly')}</Text>
+        </View>
+      </View>
+      <View style={styles.restricted}>
+        <Ionicons name="lock-closed-outline" size={42} color={theme.muted} />
+        <Text style={styles.emptyTitle}>{t('accessRestricted')}</Text>
+      </View>
+    </SafeAreaView>
+  );
+
   if (!permissions.canManageVilla) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Documents</Text>
-            <Text style={styles.subtitle}>This section is available to villa managers.</Text>
-          </View>
-        </View>
-        <View style={styles.restricted}>
-          <Ionicons name="lock-closed-outline" size={42} color={theme.muted} />
-          <Text style={styles.emptyTitle}>Access restricted</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return restrictedView;
   }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Documents</Text>
-          <Text style={styles.subtitle}>Reference links and record notes.</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{t('documentsTitle')}</Text>
+          <Text style={styles.subtitle}>{t('documentsSubtitle')}</Text>
         </View>
-        <View style={styles.headerActions}>
-          <ExportButtons
-            onCsv={exportDocuments}
-            onPdf={exportDocumentsPdf}
-          />
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setShowForm(!showForm)}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
+        <View style={[styles.headerActions, { flexDirection: rowDirection }]}>
+          <ExportButtons onCsv={exportDocuments} onPdf={exportDocumentsPdf} />
+          <TouchableOpacity style={[styles.button, styles.primaryButton, { flexDirection: rowDirection }]} onPress={() => setShowForm(!showForm)}>
+            <Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} />
+            <Text style={styles.primaryButtonText}>{showForm ? t('close') : t('add')}</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.notice}>
+        <View style={[styles.notice, { flexDirection: rowDirection }]}>
           <Ionicons name="shield-checkmark-outline" size={18} color="#60A5FA" />
-          <Text style={styles.noticeText}>Use this section for references, links, expiry dates, and notes. Keep large photos or receipt files in your configured external storage.</Text>
+          <Text style={styles.noticeText}>{t('documentsNotice')}</Text>
         </View>
 
-        <View style={styles.searchWrap}>
+        <View style={[styles.searchWrap, { flexDirection: rowDirection }]}>
           <Ionicons name="search-outline" size={18} color={theme.muted} />
-          <TextInput style={styles.search} value={query} onChangeText={setQuery} placeholder="Search documents..." placeholderTextColor={theme.muted} />
+          <TextInput
+            style={[styles.search, { textAlign }]}
+            value={query}
+            onChangeText={setQuery}
+            placeholder={t('searchDocuments')}
+            placeholderTextColor={theme.muted}
+          />
         </View>
 
         {showForm ? (
           <View style={styles.panel}>
-            <Text style={styles.panelTitle}>{editingId ? 'Edit Document' : 'Add Document'}</Text>
-            <TextInput style={styles.input} value={form.title} onChangeText={(title) => setForm({ ...form, title })} placeholder="Title" placeholderTextColor={theme.muted} />
+            <Text style={styles.panelTitle}>{editingId ? t('editDocument') : t('addDocument')}</Text>
+            <TextInput
+              style={[styles.input, { textAlign }]}
+              value={form.title}
+              onChangeText={(title) => setForm({ ...form, title })}
+              placeholder={t('documentTitle')}
+              placeholderTextColor={theme.muted}
+            />
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {types.map((type) => (
+              {DOCUMENT_TYPES.map((type) => (
                 <TouchableOpacity key={type} style={[styles.choice, form.type === type && styles.choiceActive]} onPress={() => setForm({ ...form, type })}>
-                  <Text style={[styles.choiceText, form.type === type && styles.choiceTextActive]}>{type}</Text>
+                  <Text style={[styles.choiceText, form.type === type && styles.choiceTextActive]}>{translateDocType(type)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <TextInput style={styles.input} value={form.link} onChangeText={(link) => setForm({ ...form, link })} placeholder="Link, reference number, or location" placeholderTextColor={theme.muted} autoCapitalize="none" />
-            <DateInput value={form.renewalDate} onChange={(renewalDate) => setForm({ ...form, renewalDate })} style={styles.input} placeholder="Renewal / expiry date" clearable />
-            <TextInput style={[styles.input, styles.textarea]} value={form.notes} onChangeText={(notes) => setForm({ ...form, notes })} placeholder="Notes" placeholderTextColor={theme.muted} multiline />
-            <TouchableOpacity style={styles.saveButton} onPress={saveDocument}><Text style={styles.saveText}>Save Document</Text></TouchableOpacity>
+            <TextInput
+              style={[styles.input, { textAlign }]}
+              value={form.link}
+              onChangeText={(link) => setForm({ ...form, link })}
+              placeholder={t('linkReferencePlaceholder')}
+              placeholderTextColor={theme.muted}
+              autoCapitalize="none"
+            />
+            <DateInput
+              value={form.renewalDate}
+              onChange={(renewalDate) => setForm({ ...form, renewalDate })}
+              style={[styles.input, { textAlign }]}
+              placeholder={t('renewalExpiryPlaceholder')}
+              clearable
+            />
+            <TextInput
+              style={[styles.input, styles.textarea, { textAlign }]}
+              value={form.notes}
+              onChangeText={(notes) => setForm({ ...form, notes })}
+              placeholder={t('notes')}
+              placeholderTextColor={theme.muted}
+              multiline
+            />
+            <TouchableOpacity style={styles.saveButton} onPress={saveDocument}>
+              <Text style={styles.saveText}>{t('saveDocument')}</Text>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -188,24 +228,28 @@ export default function DocumentsScreen() {
           {filtered.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="document-text-outline" size={42} color={theme.muted} />
-              <Text style={styles.emptyTitle}>No documents found.</Text>
+              <Text style={styles.emptyTitle}>{t('noDocumentsFound')}</Text>
             </View>
           ) : filtered.map((doc) => (
             <View key={doc.id} style={styles.card}>
-              <View style={styles.cardTop}>
+              <View style={[styles.cardTop, { flexDirection: rowDirection }]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.cardTitle}>{doc.title}</Text>
-                  <Text style={styles.muted}>{doc.type}{doc.renewalDate ? ' • Renewal ' + doc.renewalDate : ''}</Text>
+                  <Text style={[styles.cardTitle, { textAlign }]}>{doc.title}</Text>
+                  <Text style={[styles.muted, { textAlign }]}>
+                    {translateDocType(doc.type)}{doc.renewalDate ? ` • ${t('renewalLabel')} ${doc.renewalDate}` : ''}
+                  </Text>
                 </View>
-                <Text style={styles.badge}>{doc.type}</Text>
+                <Text style={styles.badge}>{translateDocType(doc.type)}</Text>
               </View>
-              {doc.link ? <Text style={styles.notes}>{doc.link}</Text> : null}
-              {doc.notes ? <Text style={styles.notes}>{doc.notes}</Text> : null}
-              <View style={styles.actions}>
-                <TouchableOpacity style={styles.smallButton} onPress={() => editDocument(doc)}><Text style={styles.smallText}>Edit</Text></TouchableOpacity>
-                <TouchableOpacity style={styles.deleteButton} onPress={() => deleteDocument(doc)}>
+              {doc.link ? <Text style={[styles.notes, { textAlign }]}>{doc.link}</Text> : null}
+              {doc.notes ? <Text style={[styles.notes, { textAlign }]}>{doc.notes}</Text> : null}
+              <View style={[styles.actions, { flexDirection: rowDirection }]}>
+                <TouchableOpacity style={styles.smallButton} onPress={() => editDocument(doc)}>
+                  <Text style={styles.smallText}>{t('edit')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.deleteButton, { flexDirection: rowDirection }]} onPress={() => deleteDocument(doc)}>
                   <Ionicons name="trash-outline" size={15} color={theme.mode === 'light' ? '#B91C1C' : theme.dangerText} />
-                  <Text style={styles.deleteText}>Delete</Text>
+                  <Text style={styles.deleteText}>{t('delete')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -216,26 +260,30 @@ export default function DocumentsScreen() {
   );
 }
 
-const makeStyles = (theme: any) => StyleSheet.create({
+const makeStyles = (
+  theme: any,
+  textAlign: 'right' | 'left',
+  rowDirection: 'row-reverse' | 'row',
+  direction: 'rtl' | 'ltr',
+) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 16, backgroundColor: theme.card },
-  title: { color: theme.text, fontSize: 22, fontWeight: 'bold' },
-  subtitle: { color: theme.muted, marginTop: 3 },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  button: { backgroundColor: theme.chip, borderRadius: 8, minHeight: 40, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', gap: 5, alignItems: 'center' },
+  header: { flexDirection: rowDirection, justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 16, backgroundColor: theme.card },
+  title: { color: theme.text, fontSize: 22, fontWeight: 'bold', textAlign, writingDirection: direction },
+  subtitle: { color: theme.muted, marginTop: 3, textAlign, writingDirection: direction },
+  headerActions: { alignItems: 'center', gap: 8 },
+  button: { backgroundColor: theme.chip, borderRadius: 8, minHeight: 40, paddingHorizontal: 10, paddingVertical: 8, alignItems: 'center', gap: 5 },
   primaryButton: { backgroundColor: theme.primary },
-  buttonText: { color: theme.text, fontWeight: '800', fontSize: 12 },
   primaryButtonText: { color: theme.onPrimary, fontWeight: '800', fontSize: 12 },
   content: { padding: 16, paddingBottom: 28 },
-  notice: { backgroundColor: '#0F2230', borderColor: '#1F3A4D', borderWidth: 1, padding: 12, borderRadius: 10, flexDirection: 'row', gap: 8, marginBottom: 14 },
-  noticeText: { color: '#93C5FD', flex: 1, lineHeight: 18 },
-  searchWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: theme.card, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, marginBottom: 14 },
-  search: { color: theme.text, flex: 1, paddingVertical: 11 },
+  notice: { backgroundColor: '#0F2230', borderColor: '#1F3A4D', borderWidth: 1, padding: 12, borderRadius: 10, gap: 8, marginBottom: 14, alignItems: 'flex-start' },
+  noticeText: { color: '#93C5FD', flex: 1, lineHeight: 18, textAlign, writingDirection: direction },
+  searchWrap: { alignItems: 'center', gap: 8, backgroundColor: theme.card, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, marginBottom: 14 },
+  search: { color: theme.text, flex: 1, paddingVertical: 11, writingDirection: direction },
   panel: { backgroundColor: theme.card, borderRadius: 12, borderColor: theme.chip, borderWidth: 1, padding: 14, gap: 10, marginBottom: 16 },
-  panelTitle: { color: theme.text, fontSize: 18, fontWeight: '900' },
-  input: { backgroundColor: theme.background, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, color: theme.text, paddingHorizontal: 12, paddingVertical: 10 },
+  panelTitle: { color: theme.text, fontSize: 18, fontWeight: '900', textAlign, writingDirection: direction },
+  input: { backgroundColor: theme.background, borderColor: theme.chip, borderWidth: 1, borderRadius: 10, color: theme.text, paddingHorizontal: 12, paddingVertical: 10, writingDirection: direction },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
-  choice: { backgroundColor: theme.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: 8 },
+  choice: { backgroundColor: theme.chip, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, marginRight: direction === 'rtl' ? 0 : 8, marginLeft: direction === 'rtl' ? 8 : 0 },
   choiceActive: { backgroundColor: theme.primary },
   choiceText: { color: theme.subtleText, fontSize: 12, fontWeight: '700' },
   choiceTextActive: { color: theme.onPrimary },
@@ -243,17 +291,17 @@ const makeStyles = (theme: any) => StyleSheet.create({
   saveText: { color: theme.onPrimary, fontWeight: '900' },
   list: { gap: 12 },
   empty: { alignItems: 'center', padding: 26, backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.chip },
-  emptyTitle: { color: theme.text, fontSize: 16, fontWeight: '900', marginTop: 10 },
+  emptyTitle: { color: theme.text, fontSize: 16, fontWeight: '900', marginTop: 10, textAlign, writingDirection: direction },
   restricted: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28 },
   card: { backgroundColor: theme.card, borderRadius: 12, borderColor: theme.chip, borderWidth: 1, padding: 14 },
-  cardTop: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  cardTitle: { color: theme.text, fontWeight: '900', fontSize: 16 },
-  muted: { color: theme.muted, fontSize: 12, marginTop: 4 },
+  cardTop: { gap: 10, alignItems: 'flex-start' },
+  cardTitle: { color: theme.text, fontWeight: '900', fontSize: 16, writingDirection: direction },
+  muted: { color: theme.muted, fontSize: 12, marginTop: 4, writingDirection: direction },
   badge: { color: '#DBEAFE', backgroundColor: '#1E3A8A', borderRadius: 999, overflow: 'hidden', paddingHorizontal: 9, paddingVertical: 5, fontSize: 11, fontWeight: '900' },
-  notes: { color: theme.subtleText, marginTop: 10, lineHeight: 18 },
-  actions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  notes: { color: theme.subtleText, marginTop: 10, lineHeight: 18, writingDirection: direction },
+  actions: { gap: 8, marginTop: 12 },
   smallButton: { backgroundColor: theme.chip, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   smallText: { color: theme.subtleText, fontWeight: '800' },
-  deleteButton: { backgroundColor: theme.mode === 'light' ? '#FEE2E2' : '#3B1F26', borderColor: theme.mode === 'light' ? '#FCA5A5' : '#7F1D1D', borderWidth: 1, borderRadius: 8, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  deleteButton: { backgroundColor: theme.mode === 'light' ? '#FEE2E2' : '#3B1F26', borderColor: theme.mode === 'light' ? '#FCA5A5' : '#7F1D1D', borderWidth: 1, borderRadius: 8, paddingHorizontal: 11, paddingVertical: 8, alignItems: 'center', gap: 5 },
   deleteText: { color: theme.mode === 'light' ? '#B91C1C' : theme.dangerText, fontWeight: '900' },
 });
