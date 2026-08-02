@@ -13,7 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
-import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, apartmentCreditBalance, isApartmentPaidUp, isPaymentPaid, balanceFromPaymentExpense } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, isApartmentPaidUp, isPaymentPaid, balanceFromPaymentExpense, parsePaymentExpenseBalance } from '../../utils/money';
 import { formatT, translateEnum } from '../../i18n/helpers';
 
 interface Apartment {
@@ -404,9 +404,7 @@ const ApartmentsScreen = () => {
                 <View style={styles.summaryBox}>
                   <Text style={styles.summaryLabel}>{t('balance')}</Text>
                   {(() => {
-                    const balance = Number(statement?.balance || 0);
-                    const due = apartmentBalanceDue(balance);
-                    const credit = apartmentCreditBalance(balance);
+                    const { due, credit, isPaidUp } = parsePaymentExpenseBalance(Number(statement?.balance || 0));
                     if (due > 0) {
                       return <Text style={[styles.summaryValue, { color: UNPAID_COLOR }]}>{money(due)}</Text>;
                     }
