@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { getActiveVillaName } from '../../utils/villa';
-import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import { PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
 import ExportButtons from '../../components/ExportButtons';
 import { money, isPaymentPaid, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 import { useAppPreferences } from '../../context/AppPreferences';
@@ -220,9 +220,6 @@ const PaymentsScreen = () => {
     });
   };
 
-  const exportPaymentsExcel = () =>
-    runBinaryExport(t, () => apiService.exportPaymentsExcel(villaId), 'payments.xlsx', EXCEL_MIME);
-
   const exportPaymentsPdf = () =>
     runBinaryExport(t, () => apiService.exportPaymentsPdf(villaId), 'payments.pdf', PDF_MIME);
 
@@ -263,7 +260,6 @@ const PaymentsScreen = () => {
             theme={theme}
             t={t}
             onCsv={exportPayments}
-            onExcel={exportPaymentsExcel}
             onPdf={exportPaymentsPdf}
           />
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>

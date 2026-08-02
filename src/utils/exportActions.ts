@@ -2,7 +2,6 @@ import { Alert } from 'react-native';
 import { saveExportFromResponse } from './exportFile';
 import { exportCsv, exportCsvContent } from './csv';
 
-export const EXCEL_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 export const PDF_MIME = 'application/pdf';
 
 export type TableExportPayload = {

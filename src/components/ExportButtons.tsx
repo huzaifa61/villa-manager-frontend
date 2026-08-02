@@ -10,20 +10,15 @@ type ExportButtonsProps = {
   };
   t: (key: string) => string;
   onCsv: () => void;
-  onExcel: () => void;
   onPdf: () => void;
 };
 
-export default function ExportButtons({ theme, t, onCsv, onExcel, onPdf }: ExportButtonsProps) {
+export default function ExportButtons({ theme, t, onCsv, onPdf }: ExportButtonsProps) {
   const buttonStyle = [styles.button, { backgroundColor: theme.chip, borderColor: theme.border }];
   const labelStyle = [styles.label, { color: theme.text }];
 
   return (
     <View style={styles.row}>
-      <TouchableOpacity style={buttonStyle} onPress={onExcel}>
-        <Ionicons name="document-outline" size={17} color={theme.text} />
-        <Text style={labelStyle}>{t('excel')}</Text>
-      </TouchableOpacity>
       <TouchableOpacity style={buttonStyle} onPress={onPdf}>
         <Ionicons name="document-text-outline" size={17} color={theme.text} />
         <Text style={labelStyle}>{t('pdf')}</Text>

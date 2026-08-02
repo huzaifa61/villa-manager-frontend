@@ -138,8 +138,6 @@ export const apiService = {
     return unwrap(data);
   },
   exportApartmentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/apartments/export'),
-  exportApartmentsExcel: async (villaId: number) =>
-    downloadBinary('/v1/villas/' + villaId + '/apartments/export-excel'),
   exportApartmentsPdf: async (villaId: number) =>
     downloadBinary('/v1/villas/' + villaId + '/apartments/export-pdf'),
   getPayments: async (villaId: number) => {
@@ -159,8 +157,6 @@ export const apiService = {
     return unwrap(data);
   },
   exportPaymentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/payments/export'),
-  exportPaymentsExcel: async (villaId: number) =>
-    downloadBinary('/v1/villas/' + villaId + '/payments/export-excel'),
   exportPaymentsPdf: async (villaId: number) =>
     downloadBinary('/v1/villas/' + villaId + '/payments/export-pdf'),
   getExpenses: async (villaId: number) => {
@@ -180,8 +176,6 @@ export const apiService = {
     return unwrap(data);
   },
   exportExpensesCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/expenses/export'),
-  exportExpensesExcel: async (villaId: number) =>
-    downloadBinary('/v1/villas/' + villaId + '/expenses/export-excel'),
   exportExpensesPdf: async (villaId: number) =>
     downloadBinary('/v1/villas/' + villaId + '/expenses/export-pdf'),
   getExpenseTemplates: async (villaId: number) => {
@@ -222,8 +216,6 @@ export const apiService = {
   },
   exportServiceRequestsCsv: async (villaId: number) =>
     getCsv('/v1/villas/' + villaId + '/service-requests/export'),
-  exportServiceRequestsExcel: async (villaId: number) =>
-    downloadBinary('/v1/villas/' + villaId + '/service-requests/export-excel'),
   exportServiceRequestsPdf: async (villaId: number) =>
     downloadBinary('/v1/villas/' + villaId + '/service-requests/export-pdf'),
   getVendors: async () => {
@@ -243,10 +235,7 @@ export const apiService = {
     return unwrap(data);
   },
   exportVendorsCsv: async (villaId?: number | null) => getCsv(vendorExportUrl('export', villaId)),
-  exportVendorsExcel: async (villaId?: number | null) => downloadBinary(vendorExportUrl('export-excel', villaId)),
   exportVendorsPdf: async (villaId?: number | null) => downloadBinary(vendorExportUrl('export-pdf', villaId)),
-  exportTableExcel: async (villaId: number, body: Record<string, unknown>) =>
-    postBinary('/v1/villas/' + villaId + '/exports/excel', body),
   exportTablePdf: async (villaId: number, body: Record<string, unknown>) =>
     postBinary('/v1/villas/' + villaId + '/exports/pdf', body),
   exportTableCsv: async (villaId: number, body: Record<string, unknown>) =>

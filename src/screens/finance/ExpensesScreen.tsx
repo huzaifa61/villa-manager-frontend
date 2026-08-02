@@ -8,7 +8,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { incrementVillaNotification } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
 import { getActiveVillaName } from '../../utils/villa';
-import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import { PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
 import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
@@ -297,9 +297,6 @@ const ExpensesScreen = () => {
     });
   };
 
-  const exportExpensesExcel = () =>
-    runBinaryExport(t, () => apiService.exportExpensesExcel(villaId), 'expenses.xlsx', EXCEL_MIME);
-
   const exportExpensesPdf = () =>
     runBinaryExport(t, () => apiService.exportExpensesPdf(villaId), 'expenses.pdf', PDF_MIME);
 
@@ -365,7 +362,6 @@ const ExpensesScreen = () => {
             theme={theme}
             t={t}
             onCsv={exportExpenses}
-            onExcel={exportExpensesExcel}
             onPdf={exportExpensesPdf}
           />
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>

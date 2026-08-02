@@ -7,7 +7,6 @@ import { useSelector } from 'react-redux';
 import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
 import {
-  EXCEL_MIME,
   PDF_MIME,
   runBinaryExport,
   runCsvExport,
@@ -112,17 +111,6 @@ export default function DocumentsScreen() {
     });
   };
 
-  const exportDocumentsExcel = () => {
-    if (!villaId) return;
-    const body = documentsExportBody();
-    return runBinaryExport(
-      t,
-      () => apiService.exportTableExcel(villaId, body),
-      'documents.xlsx',
-      EXCEL_MIME,
-    );
-  };
-
   const exportDocumentsPdf = () => {
     if (!villaId) return;
     const body = documentsExportBody();
@@ -163,7 +151,6 @@ export default function DocumentsScreen() {
             theme={theme}
             t={t}
             onCsv={exportDocuments}
-            onExcel={exportDocumentsExcel}
             onPdf={exportDocumentsPdf}
           />
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setShowForm(!showForm)}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>

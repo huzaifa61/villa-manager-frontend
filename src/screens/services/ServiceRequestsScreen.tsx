@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { apiService } from '../../services/api';
 import { getActiveVillaName } from '../../utils/villa';
-import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import { PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
 import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { permissionsFor } from '../../utils/permissions';
@@ -145,9 +145,6 @@ export default function ServiceRequestsScreen() {
     });
   };
 
-  const exportRequestsExcel = () =>
-    runBinaryExport(t, () => apiService.exportServiceRequestsExcel(villaId), 'service-requests.xlsx', EXCEL_MIME);
-
   const exportRequestsPdf = () =>
     runBinaryExport(t, () => apiService.exportServiceRequestsPdf(villaId), 'service-requests.pdf', PDF_MIME);
 
@@ -170,7 +167,6 @@ export default function ServiceRequestsScreen() {
             theme={theme}
             t={t}
             onCsv={exportRequests}
-            onExcel={exportRequestsExcel}
             onPdf={exportRequestsPdf}
           />
           {permissions.canCreateServiceRequests ? actionButton(showForm ? t('close') : t('newRequest'), showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}

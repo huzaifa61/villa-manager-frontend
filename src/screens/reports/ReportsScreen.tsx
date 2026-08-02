@@ -6,7 +6,6 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { getActiveVillaName } from '../../utils/villa';
 import {
-  EXCEL_MIME,
   PDF_MIME,
   runBinaryExport,
   runCsvExport,
@@ -181,16 +180,6 @@ export default function ReportsScreen() {
     });
   };
 
-  const exportReportExcel = () => {
-    const body = tableExportBody();
-    return runBinaryExport(
-      t,
-      () => apiService.exportTableExcel(villaId, body),
-      tableExportBaseName(body.fileName) + '.xlsx',
-      EXCEL_MIME,
-    );
-  };
-
   const exportReportPdf = () => {
     const body = tableExportBody();
     return runBinaryExport(
@@ -220,7 +209,6 @@ export default function ReportsScreen() {
             theme={theme}
             t={t}
             onCsv={exportReport}
-            onExcel={exportReportExcel}
             onPdf={exportReportPdf}
           />
           <TouchableOpacity style={styles.refresh} onPress={printReport}><Text style={styles.refreshText}>{t('print')}</Text></TouchableOpacity>

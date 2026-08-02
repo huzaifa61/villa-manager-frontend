@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { getActiveVillaName } from '../../utils/villa';
-import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import { PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
 import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
@@ -151,9 +151,6 @@ export default function VendorsScreen() {
     });
   };
 
-  const exportVendorsExcel = () =>
-    runBinaryExport(t, () => apiService.exportVendorsExcel(villaId), 'vendors.xlsx', EXCEL_MIME);
-
   const exportVendorsPdf = () =>
     runBinaryExport(t, () => apiService.exportVendorsPdf(villaId), 'vendors.pdf', PDF_MIME);
 
@@ -186,7 +183,6 @@ export default function VendorsScreen() {
             theme={theme}
             t={t}
             onCsv={exportVendors}
-            onExcel={exportVendorsExcel}
             onPdf={exportVendorsPdf}
           />
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => (showForm ? resetForm() : openAddForm())}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
