@@ -6,26 +6,22 @@ export const isPaymentPaid = (status?: string) => status === 'COMPLETED' || stat
 export const balanceFromPaymentExpense = (opening: number, paid: number, expenses: number) =>
   Number(opening || 0) + Number(paid || 0) - Number(expenses || 0);
 
-/**
- * Amount owed / outstanding for display and unpaid totals.
- * Supports both API conventions:
- * - expense − payment (positive = owed) — current production API
- * - payment − expense (negative = owed) — updated backend
- */
+/** API currentBalance: positive = credit, negative = owed, zero = settled. */
+export const parseApiCurrentBalance = (currentBalance: number) => {
+  const n = Number(currentBalance || 0);
+  if (n === 0) return { amount: 0, isCredit: false, isOwed: false };
+  if (n > 0) return { amount: n, isCredit: true, isOwed: false };
+  return { amount: Math.abs(n), isCredit: false, isOwed: true };
+};
+
+/** Sum of amounts owed (negative balances only). */
 export const apartmentBalanceDue = (currentBalance: number) => {
   const n = Number(currentBalance || 0);
-  if (n === 0) return 0;
-  return Math.abs(n);
+  return n < 0 ? Math.abs(n) : 0;
 };
 
 export const isApartmentPaidUp = (currentBalance: number) =>
-  apartmentBalanceDue(currentBalance) === 0;
-
-/** Credit only under payment−expense (positive balance after payments exceed expenses). */
-export const apartmentCreditBalance = (currentBalance: number) => {
-  const n = Number(currentBalance || 0);
-  return n > 0 ? n : 0;
-};
+  Number(currentBalance || 0) >= 0;
 
 /** Parse a payment−expense balance for statement UI (computed locally). */
 export const parsePaymentExpenseBalance = (balance: number) => {

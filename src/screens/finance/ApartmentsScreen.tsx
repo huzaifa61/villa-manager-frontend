@@ -13,7 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
-import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, isApartmentPaidUp, isPaymentPaid, balanceFromPaymentExpense, parsePaymentExpenseBalance } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, isPaymentPaid, balanceFromPaymentExpense, parseApiCurrentBalance, parsePaymentExpenseBalance } from '../../utils/money';
 import { formatT, translateEnum } from '../../i18n/helpers';
 
 interface Apartment {
@@ -287,8 +287,7 @@ const ApartmentsScreen = () => {
   };
 
   const renderItem = ({ item }: { item: Apartment }) => {
-    const balanceDue = apartmentBalanceDue(item.currentBalance);
-    const isPaidUp = isApartmentPaidUp(item.currentBalance);
+    const balanceView = parseApiCurrentBalance(item.currentBalance);
     return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -302,7 +301,7 @@ const ApartmentsScreen = () => {
       <Text style={styles.line}>{t('phone')}: {item.phoneNumber || '-'}</Text>
       <View style={styles.balanceRow}>
         <Text style={styles.opening}>{t('openingBalance')}: {money(item.openingBalance)}</Text>
-        <Text style={[styles.balance, { color: isPaidUp ? PAID_COLOR : UNPAID_COLOR }]}>{t('balance')}: {money(balanceDue)}</Text>
+        <Text style={[styles.balance, { color: balanceView.isOwed ? UNPAID_COLOR : PAID_COLOR }]}>{t('balance')}: {money(balanceView.amount)}</Text>
       </View>
       <View style={styles.actions}>
         {permissions.canManageVilla ? <TouchableOpacity style={styles.smallBtn} onPress={() => openEdit(item)}><Text style={styles.smallBtnText}>{t('edit')}</Text></TouchableOpacity> : null}
