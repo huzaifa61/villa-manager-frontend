@@ -270,20 +270,20 @@ const ApartmentsScreen = () => {
     const directExpenses = expenses
       .filter((e) => e.apartmentId === apartment.id)
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const allocated = globalShare + directExpenses;
+    const expense = globalShare + directExpenses;
     const paid = payments
       .filter((p) => p.apartmentId === apartment.id)
       .filter((p) => isPaymentPaid(p.status))
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const balance = balanceFromPaymentExpense(apartment.openingBalance, paid, allocated);
-    return { allocated, paid, balance };
+    const balance = paid - expense + Number(apartment.openingBalance || 0);
+    return { expense, paid, balance };
   };
 
   const exportApartments = async () => {
     const villaName = await getActiveVillaName(villaId);
     await runCsvExport(t, () => apiService.exportApartmentsCsv(villaId), {
       filename: 'apartments.csv',
-      headers: ['ID', 'Apartment', 'Owner', 'Tenant', 'Phone', 'Status', 'Opening Balance', 'Allocated', 'Paid', 'Balance', 'Type'],
+      headers: ['ID', 'Apartment', 'Owner', 'Tenant', 'Phone', 'Status', 'Opening Balance', 'Expense', 'Paid', 'Balance', 'Type'],
       rows: filteredApartments.map((a) => {
         const finance = apartmentFinance(a);
         return [
@@ -294,7 +294,7 @@ const ApartmentsScreen = () => {
           a.phoneNumber,
           a.status,
           a.openingBalance,
-          finance.allocated,
+          finance.expense,
           finance.paid,
           finance.balance,
           a.apartmentType,
