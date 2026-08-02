@@ -6,7 +6,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
-import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue } from '../../utils/money';
 import { formatT, translateEnum, translateExpenseCategory } from '../../i18n/helpers';
 
 type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
@@ -49,7 +49,7 @@ export default function ReportsScreen() {
       totalExpenses,
       totalCollected,
       cashBalance: totalCollected - totalExpenses,
-      totalUnpaid: apartments.reduce((sum, a) => sum + Math.max(Number(a.currentBalance || 0), 0), 0),
+      totalUnpaid: apartments.reduce((sum, a) => sum + apartmentBalanceDue(a.currentBalance), 0),
     };
   }, [apartments, expenses, payments]);
 

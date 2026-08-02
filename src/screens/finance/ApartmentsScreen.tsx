@@ -13,7 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
-import { money, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, isApartmentPaidUp } from '../../utils/money';
 import { formatT, translateEnum } from '../../i18n/helpers';
 
 interface Apartment {
@@ -286,8 +286,8 @@ const ApartmentsScreen = () => {
   };
 
   const renderItem = ({ item }: { item: Apartment }) => {
-    const balanceDue = Math.max(Number(item.currentBalance || 0), 0);
-    const isPaidUp = balanceDue === 0;
+    const balanceDue = apartmentBalanceDue(item.currentBalance);
+    const isPaidUp = isApartmentPaidUp(item.currentBalance);
     return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
