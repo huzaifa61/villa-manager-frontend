@@ -5,8 +5,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { apiService } from '../../services/api';
-import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
@@ -121,21 +122,34 @@ export default function ServiceRequestsScreen() {
     });
   };
 
+  const serviceRequestExportFallback = () => ({
+    filename: 'service-requests.csv',
+    headers: ['ID', 'Apartment', 'Description', 'Status', 'Vendor', 'Notes', 'Created At'],
+    rows: requests.map((request) => [
+      request.id,
+      apartmentById[String(request.apartmentId)]?.apartmentNumber || request.apartmentId || '',
+      request.description,
+      request.status,
+      vendorById[String(request.vendorId)]?.name || '',
+      request.notes,
+      request.createdAt,
+    ]),
+  });
+
   const exportRequests = async () => {
     const villaName = await getActiveVillaName(villaId);
-    await exportCsv('service-requests.csv',
-      ['ID', 'Apartment', 'Description', 'Status', 'Vendor', 'Notes', 'Created At'],
-      requests.map((request) => [
-        request.id,
-        apartmentById[String(request.apartmentId)]?.apartmentNumber || request.apartmentId || '',
-        request.description,
-        request.status,
-        vendorById[String(request.vendorId)]?.name || '',
-        request.notes,
-        request.createdAt,
-      ]),
-      { title: t('serviceRequests'), villaName });
+    const fallback = serviceRequestExportFallback();
+    await runCsvExport(t, () => apiService.exportServiceRequestsCsv(villaId), {
+      ...fallback,
+      options: { title: t('serviceRequests'), villaName },
+    });
   };
+
+  const exportRequestsExcel = () =>
+    runBinaryExport(t, () => apiService.exportServiceRequestsExcel(villaId), 'service-requests.xlsx', EXCEL_MIME);
+
+  const exportRequestsPdf = () =>
+    runBinaryExport(t, () => apiService.exportServiceRequestsPdf(villaId), 'service-requests.pdf', PDF_MIME);
 
   const actionButton = (label: string, icon: IconName, onPress: () => void, primary = false) => (
     <TouchableOpacity style={[styles.button, primary && styles.primaryButton]} onPress={onPress}>
@@ -152,7 +166,13 @@ export default function ServiceRequestsScreen() {
           <Text style={styles.subtitle}>{t('serviceSubtitle')}</Text>
         </View>
         <View style={styles.headerActions}>
-          {actionButton(t('csv'), 'download-outline', exportRequests)}
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportRequests}
+            onExcel={exportRequestsExcel}
+            onPdf={exportRequestsPdf}
+          />
           {permissions.canCreateServiceRequests ? actionButton(showForm ? t('close') : t('newRequest'), showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}
         </View>
       </View>

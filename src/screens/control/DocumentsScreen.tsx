@@ -6,6 +6,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import {
+  EXCEL_MIME,
+  PDF_MIME,
+  runBinaryExport,
+  runCsvExport,
+  type TableExportPayload,
+} from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
@@ -17,7 +25,7 @@ const emptyDocument = { title: '', type: 'Receipt', link: '', renewalDate: '', n
 const types = ['Receipt', 'Contract', 'Warranty', 'Permit', 'Insurance', 'Other'];
 
 export default function DocumentsScreen() {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const villaId = activeVillaId || user?.villaId || null;
   const permissions = permissionsFor(user);
@@ -76,12 +84,54 @@ export default function DocumentsScreen() {
     });
   };
 
+  const documentsExportBody = (): TableExportPayload => ({
+    fileName: 'documents',
+    title: 'Documents',
+    sheetName: 'Documents',
+    headers: ['Title', 'Type', 'Link / Reference', 'Renewal Date', 'Notes', 'Updated At'],
+    rows: filtered.map((doc) => [doc.title, doc.type, doc.link, doc.renewalDate, doc.notes, doc.updatedAt]),
+  });
+
   const exportDocuments = async () => {
+    if (!villaId) {
+      const body = documentsExportBody();
+      const villaName = await getActiveVillaName(villaId);
+      await exportCsv('documents.csv', body.headers, body.rows, { title: 'Documents', villaName });
+      return;
+    }
+    const body = documentsExportBody();
     const villaName = await getActiveVillaName(villaId);
-    await exportCsv('documents.csv',
-      ['Title', 'Type', 'Link / Reference', 'Renewal Date', 'Notes', 'Updated At'],
-      filtered.map((doc) => [doc.title, doc.type, doc.link, doc.renewalDate, doc.notes, doc.updatedAt]),
-      { title: 'Documents', villaName });
+    await runCsvExport(t, () => apiService.exportTableCsv(villaId, body).then((r) => {
+      const decoder = new TextDecoder('utf-8');
+      return decoder.decode(r.data);
+    }), {
+      filename: 'documents.csv',
+      headers: body.headers,
+      rows: body.rows,
+      options: { title: 'Documents', villaName },
+    });
+  };
+
+  const exportDocumentsExcel = () => {
+    if (!villaId) return;
+    const body = documentsExportBody();
+    return runBinaryExport(
+      t,
+      () => apiService.exportTableExcel(villaId, body),
+      'documents.xlsx',
+      EXCEL_MIME,
+    );
+  };
+
+  const exportDocumentsPdf = () => {
+    if (!villaId) return;
+    const body = documentsExportBody();
+    return runBinaryExport(
+      t,
+      () => apiService.exportTablePdf(villaId, body),
+      'documents.pdf',
+      PDF_MIME,
+    );
   };
 
   if (!permissions.canManageVilla) {
@@ -109,7 +159,13 @@ export default function DocumentsScreen() {
           <Text style={styles.subtitle}>Reference links and record notes.</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.button} onPress={exportDocuments}><Ionicons name="download-outline" size={18} color={theme.text} /><Text style={styles.buttonText}>CSV</Text></TouchableOpacity>
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportDocuments}
+            onExcel={exportDocumentsExcel}
+            onPdf={exportDocumentsPdf}
+          />
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setShowForm(!showForm)}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
         </View>
       </View>

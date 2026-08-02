@@ -66,6 +66,20 @@ const downloadBinary = async (url: string) => {
   return { data: response.data as ArrayBuffer, headers };
 };
 
+const postBinary = async (url: string, body: unknown) => {
+  const response = await api.post(url, body, { responseType: 'arraybuffer' });
+  const headers: Record<string, string> = {};
+  Object.entries(response.headers || {}).forEach(([key, value]) => {
+    if (typeof value === 'string') headers[key.toLowerCase()] = value;
+  });
+  return { data: response.data as ArrayBuffer, headers };
+};
+
+const vendorExportUrl = (path: string, villaId?: number | null) => {
+  const base = '/v1/vendors/' + path;
+  return villaId ? base + '?villaId=' + villaId : base;
+};
+
 export const apiService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post('/v1/auth/login', { email, password });
@@ -145,6 +159,10 @@ export const apiService = {
     return unwrap(data);
   },
   exportPaymentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/payments/export'),
+  exportPaymentsExcel: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/payments/export-excel'),
+  exportPaymentsPdf: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/payments/export-pdf'),
   getExpenses: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/expenses');
     return unwrap(data);
@@ -162,6 +180,10 @@ export const apiService = {
     return unwrap(data);
   },
   exportExpensesCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/expenses/export'),
+  exportExpensesExcel: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/expenses/export-excel'),
+  exportExpensesPdf: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/expenses/export-pdf'),
   getExpenseTemplates: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/expense-templates');
     return unwrap(data);
@@ -198,6 +220,12 @@ export const apiService = {
     const { data } = await api.delete('/v1/villas/' + villaId + '/service-requests/' + requestId);
     return unwrap(data);
   },
+  exportServiceRequestsCsv: async (villaId: number) =>
+    getCsv('/v1/villas/' + villaId + '/service-requests/export'),
+  exportServiceRequestsExcel: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/service-requests/export-excel'),
+  exportServiceRequestsPdf: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/service-requests/export-pdf'),
   getVendors: async () => {
     const { data } = await api.get('/v1/vendors');
     return unwrap(data);
@@ -214,6 +242,15 @@ export const apiService = {
     const { data } = await api.delete('/v1/vendors/' + vendorId);
     return unwrap(data);
   },
+  exportVendorsCsv: async (villaId?: number | null) => getCsv(vendorExportUrl('export', villaId)),
+  exportVendorsExcel: async (villaId?: number | null) => downloadBinary(vendorExportUrl('export-excel', villaId)),
+  exportVendorsPdf: async (villaId?: number | null) => downloadBinary(vendorExportUrl('export-pdf', villaId)),
+  exportTableExcel: async (villaId: number, body: Record<string, unknown>) =>
+    postBinary('/v1/villas/' + villaId + '/exports/excel', body),
+  exportTablePdf: async (villaId: number, body: Record<string, unknown>) =>
+    postBinary('/v1/villas/' + villaId + '/exports/pdf', body),
+  exportTableCsv: async (villaId: number, body: Record<string, unknown>) =>
+    postBinary('/v1/villas/' + villaId + '/exports/csv', body),
   getVilla: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId);
     return unwrap(data);

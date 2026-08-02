@@ -7,8 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { incrementVillaNotification } from '../../store/slices/notificationsSlice';
 import { apiService } from '../../services/api';
-import { exportCsv, exportCsvContent } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
@@ -280,24 +281,27 @@ const ExpensesScreen = () => {
 
   const exportExpenses = async () => {
     const villaName = await getActiveVillaName(villaId);
-    try {
-      const csv = await apiService.exportExpensesCsv(villaId);
-      await exportCsvContent('expenses.csv', csv);
-    } catch {
-      await exportCsv('expenses.csv',
-        ['ID', 'Apartment ID', 'Apartment', 'Category', 'Description', 'Amount', 'Expense Date'],
-        filteredExpenses.map((e) => [
-          e.id,
-          e.apartmentId,
-          e.apartmentNumber || 'All apartments',
-          e.categoryName || CATEGORIES[(e.categoryId || 1) - 1] || 'Other',
-          e.description,
-          e.amount,
-          e.expenseDate,
-        ]),
-        { title: 'Expenses Report', villaName });
-    }
+    await runCsvExport(t, () => apiService.exportExpensesCsv(villaId), {
+      filename: 'expenses.csv',
+      headers: ['ID', 'Apartment ID', 'Apartment', 'Category', 'Description', 'Amount', 'Expense Date'],
+      rows: filteredExpenses.map((e) => [
+        e.id,
+        e.apartmentId,
+        e.apartmentNumber || 'All apartments',
+        e.categoryName || CATEGORIES[(e.categoryId || 1) - 1] || 'Other',
+        e.description,
+        e.amount,
+        e.expenseDate,
+      ]),
+      options: { title: 'Expenses Report', villaName },
+    });
   };
+
+  const exportExpensesExcel = () =>
+    runBinaryExport(t, () => apiService.exportExpensesExcel(villaId), 'expenses.xlsx', EXCEL_MIME);
+
+  const exportExpensesPdf = () =>
+    runBinaryExport(t, () => apiService.exportExpensesPdf(villaId), 'expenses.pdf', PDF_MIME);
 
   const renderItem = ({ item }: { item: Expense }) => {
     const categoryKey = item.categoryName || CATEGORIES[(item.categoryId || 1) - 1] || 'Other';
@@ -357,10 +361,13 @@ const ExpensesScreen = () => {
             <Ionicons name="repeat-outline" size={17} color="#D1FAE5" />
             <Text style={styles.exportText}>{t('templates')}</Text>
           </TouchableOpacity> : null}
-          <TouchableOpacity style={styles.exportBtn} onPress={exportExpenses}>
-            <Ionicons name="download-outline" size={17} color={theme.text} />
-            <Text style={styles.exportText}>{t('csv')}</Text>
-          </TouchableOpacity>
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportExpenses}
+            onExcel={exportExpensesExcel}
+            onPdf={exportExpensesPdf}
+          />
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={24} color={theme.onPrimary} />
           </TouchableOpacity> : null}

@@ -6,8 +6,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
-import { exportCsv, exportCsvContent } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { money, isPaymentPaid, PAID_COLOR, UNPAID_COLOR } from '../../utils/money';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
@@ -201,26 +202,29 @@ const PaymentsScreen = () => {
 
   const exportPayments = async () => {
     const villaName = await getActiveVillaName(villaId);
-    try {
-      const csv = await apiService.exportPaymentsCsv(villaId);
-      await exportCsvContent('payments.csv', csv);
-    } catch {
-      await exportCsv('payments.csv',
-        ['ID', 'Apartment ID', 'Apartment', 'Amount', 'Payment Date', 'Method', 'Reference', 'Status', 'Notes'],
-        filteredPayments.map((p) => [
-          p.id,
-          p.apartmentId,
-          p.apartmentNumber || 'All apartments',
-          p.amount,
-          p.paymentDate,
-          p.paymentMethod,
-          p.referenceNumber,
-          p.status,
-          p.notes,
-        ]),
-        { title: 'Payments Report', villaName });
-    }
+    await runCsvExport(t, () => apiService.exportPaymentsCsv(villaId), {
+      filename: 'payments.csv',
+      headers: ['ID', 'Apartment ID', 'Apartment', 'Amount', 'Payment Date', 'Method', 'Reference', 'Status', 'Notes'],
+      rows: filteredPayments.map((p) => [
+        p.id,
+        p.apartmentId,
+        p.apartmentNumber || 'All apartments',
+        p.amount,
+        p.paymentDate,
+        p.paymentMethod,
+        p.referenceNumber,
+        p.status,
+        p.notes,
+      ]),
+      options: { title: 'Payments Report', villaName },
+    });
   };
+
+  const exportPaymentsExcel = () =>
+    runBinaryExport(t, () => apiService.exportPaymentsExcel(villaId), 'payments.xlsx', EXCEL_MIME);
+
+  const exportPaymentsPdf = () =>
+    runBinaryExport(t, () => apiService.exportPaymentsPdf(villaId), 'payments.pdf', PDF_MIME);
 
   const renderItem = ({ item }: { item: Payment }) => {
     const paid = isPaymentPaid(item.status);
@@ -255,10 +259,13 @@ const PaymentsScreen = () => {
           <Text style={styles.total}>{t('collected')}: <Text style={{ color: PAID_COLOR }}>{money(totalPayments)}</Text></Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.exportBtn} onPress={exportPayments}>
-            <Ionicons name="download-outline" size={17} color={theme.text} />
-            <Text style={styles.exportText}>{t('csv')}</Text>
-          </TouchableOpacity>
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportPayments}
+            onExcel={exportPaymentsExcel}
+            onPdf={exportPaymentsPdf}
+          />
           {permissions.canManageFinancials ? <TouchableOpacity style={styles.addBtn} onPress={openAdd}>
             <Ionicons name="add" size={24} color={theme.onPrimary} />
           </TouchableOpacity> : null}

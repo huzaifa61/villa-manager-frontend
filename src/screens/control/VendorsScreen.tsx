@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
-import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import { EXCEL_MIME, PDF_MIME, runBinaryExport, runCsvExport } from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
@@ -14,7 +15,7 @@ import { confirmAction } from '../../utils/confirm';
 const emptyVendor = { name: '', contactPerson: '', phoneNumber: '', email: '', address: '', serviceType: '', region: '', isActive: true };
 
 export default function VendorsScreen() {
-  const { theme } = useAppPreferences();
+  const { theme, t } = useAppPreferences();
   const { user, activeVillaId } = useSelector((s: RootState) => s.auth);
   const permissions = permissionsFor(user);
   const villaId = activeVillaId || user?.villaId || null;
@@ -125,13 +126,36 @@ export default function VendorsScreen() {
     });
   };
 
+  const vendorExportFallback = () => ({
+    filename: 'vendors.csv',
+    headers: ['ID', 'Name', 'Contact Person', 'Phone', 'Email', 'Service Type', 'Location', 'Address', 'Active'],
+    rows: filtered.map((vendor) => [
+      vendor.id,
+      vendor.name,
+      vendor.contactPerson,
+      vendor.phoneNumber,
+      vendor.email,
+      vendor.serviceType,
+      vendor.region,
+      vendor.address,
+      vendor.isActive !== false ? 'Yes' : 'No',
+    ]),
+  });
+
   const exportVendors = async () => {
     const villaName = await getActiveVillaName(villaId);
-    await exportCsv('vendors.csv',
-      ['ID', 'Name', 'Contact Person', 'Phone', 'Email', 'Service Type', 'Location', 'Address', 'Active'],
-      filtered.map((vendor) => [vendor.id, vendor.name, vendor.contactPerson, vendor.phoneNumber, vendor.email, vendor.serviceType, vendor.region, vendor.address, vendor.isActive !== false ? 'Yes' : 'No']),
-      { title: 'Vendors', villaName });
+    const fallback = vendorExportFallback();
+    await runCsvExport(t, () => apiService.exportVendorsCsv(villaId), {
+      ...fallback,
+      options: { title: 'Vendors', villaName },
+    });
   };
+
+  const exportVendorsExcel = () =>
+    runBinaryExport(t, () => apiService.exportVendorsExcel(villaId), 'vendors.xlsx', EXCEL_MIME);
+
+  const exportVendorsPdf = () =>
+    runBinaryExport(t, () => apiService.exportVendorsPdf(villaId), 'vendors.pdf', PDF_MIME);
 
   if (!permissions.canManageVendors) {
     return (
@@ -158,7 +182,13 @@ export default function VendorsScreen() {
           <Text style={styles.subtitle}>{permissions.isGeneralManager ? 'Private provider directory.' : `Providers in ${villaRegion || 'your area'}.`}</Text>
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.button} onPress={exportVendors}><Ionicons name="download-outline" size={17} color={theme.text} /><Text style={styles.buttonText}>CSV</Text></TouchableOpacity>
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportVendors}
+            onExcel={exportVendorsExcel}
+            onPdf={exportVendorsPdf}
+          />
           <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => (showForm ? resetForm() : openAddForm())}><Ionicons name={showForm ? 'close-outline' : 'add-outline'} size={17} color={theme.onPrimary} /><Text style={styles.primaryButtonText}>{showForm ? 'Close' : 'Add'}</Text></TouchableOpacity>
         </View>
       </View>

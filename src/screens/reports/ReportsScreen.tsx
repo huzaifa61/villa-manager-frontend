@@ -4,8 +4,16 @@ import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
-import { exportCsv } from '../../utils/csv';
 import { getActiveVillaName } from '../../utils/villa';
+import {
+  EXCEL_MIME,
+  PDF_MIME,
+  runBinaryExport,
+  runCsvExport,
+  tableExportBaseName,
+  type TableExportPayload,
+} from '../../utils/exportActions';
+import ExportButtons from '../../components/ExportButtons';
 import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue } from '../../utils/money';
 import { formatT, translateEnum, translateExpenseCategory } from '../../i18n/helpers';
 
@@ -147,10 +155,50 @@ export default function ReportsScreen() {
     };
   };
 
+  const tableExportBody = (): TableExportPayload => {
+    const data = reportData();
+    return {
+      fileName: tableExportBaseName(data.filename),
+      title: t('reportsTitle'),
+      sheetName: t('reportsTitle'),
+      headers: data.headers,
+      rows: data.rows,
+    };
+  };
+
   const exportReport = async () => {
     const data = reportData();
     const villaName = await getActiveVillaName(villaId);
-    await exportCsv(data.filename, data.headers, data.rows, { title: t('reportsTitle'), villaName });
+    const body = tableExportBody();
+    await runCsvExport(t, () => apiService.exportTableCsv(villaId, body).then((r) => {
+      const decoder = new TextDecoder('utf-8');
+      return decoder.decode(r.data);
+    }), {
+      filename: data.filename,
+      headers: data.headers,
+      rows: data.rows,
+      options: { title: t('reportsTitle'), villaName },
+    });
+  };
+
+  const exportReportExcel = () => {
+    const body = tableExportBody();
+    return runBinaryExport(
+      t,
+      () => apiService.exportTableExcel(villaId, body),
+      tableExportBaseName(body.fileName) + '.xlsx',
+      EXCEL_MIME,
+    );
+  };
+
+  const exportReportPdf = () => {
+    const body = tableExportBody();
+    return runBinaryExport(
+      t,
+      () => apiService.exportTablePdf(villaId, body),
+      tableExportBaseName(body.fileName) + '.pdf',
+      PDF_MIME,
+    );
   };
 
   const printReport = async () => {
@@ -168,7 +216,13 @@ export default function ReportsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>{t('reportsTitle')}</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.refresh} onPress={exportReport}><Text style={styles.refreshText}>{t('csv')}</Text></TouchableOpacity>
+          <ExportButtons
+            theme={theme}
+            t={t}
+            onCsv={exportReport}
+            onExcel={exportReportExcel}
+            onPdf={exportReportPdf}
+          />
           <TouchableOpacity style={styles.refresh} onPress={printReport}><Text style={styles.refreshText}>{t('print')}</Text></TouchableOpacity>
           <TouchableOpacity style={styles.refresh} onPress={fetchData}><Text style={styles.refreshText}>{t('refresh')}</Text></TouchableOpacity>
         </View>
