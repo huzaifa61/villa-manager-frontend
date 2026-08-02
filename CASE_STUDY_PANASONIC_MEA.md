@@ -89,7 +89,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.1 Secure Authentication & Role-Based Access
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/login-screen.png" alt="Login Screen" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/login-screen.png" alt="Login Screen" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Login screen — Villa Manager Pro branding with Email/Password authentication and registration flow.
 
@@ -110,7 +110,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.2 Financial Planning Dashboard (Business Plan Analysis)
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/dashboard.png" alt="Finance Dashboard" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/dashboard.png" alt="Finance Dashboard" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Dashboard showing Total Units (8), Occupied (6), Collected (EGP 10,967.13), Expenses (EGP 5,320), Quick Actions, and All Properties list.
 
@@ -132,7 +132,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.3 Multi-Entity Property Switching
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/switch-property.png" alt="Switch Property" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/switch-property.png" alt="Switch Property" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Switch Property modal — 8 properties (Villas & Buildings) across Giza, Cairo, Alexandria, Sohag with active selection (Zain Residency).
 
@@ -154,7 +154,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.4 Unit / Cost Center Management (Apartments)
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/apartments-list.png" alt="Apartments List" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/apartments-list.png" alt="Apartments List" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Apartments (8) — list with owner, tenant, phone, opening balance, current balance, status badges (Active/Vacant), Edit/Statement/Delete actions, CSV export.
 
@@ -177,7 +177,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.5 Unit-Level Financial Statement (P&L per Cost Center)
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/apartment-statement.png" alt="Apartment Statement" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/apartment-statement.png" alt="Apartment Statement" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Statement for Apartment 4033 — Allocated (EGP 637.5), Paid (EGP 857.14), Balance (EGP 0), with ledger entries (Opening balance, Expenses, Cash payments).
 
@@ -199,7 +199,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.6 Expense Management & Cost Tracking
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/expenses-list.png" alt="Expenses List" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/expenses-list.png" alt="Expenses List" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Expenses (6) — Total EGP 5,320, categorized entries (Porter Salary, Electricity, Water), per-apartment allocation, Templates & CSV buttons.
 
@@ -222,7 +222,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.7 Cost Allocation Engine (Split Logic)
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/expense-split.png" alt="Expense Split" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/expense-split.png" alt="Expense Split" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Edit Expense modal — Split Type dropdown: All apartments (equal), Single apartment, Selected apartments (equal), Selected apartments (custom amounts).
 
@@ -245,7 +245,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.8 Recurring Expense Templates (Budget Automation)
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/recurring-templates.png" alt="Recurring Templates" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/recurring-templates.png" alt="Recurring Templates" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Recurring Templates — Add Template form with name, amount, day of month, description, allocation (All apartments / per apt), 16+ categories, Active status, "Run due now" button.
 
@@ -269,7 +269,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.9 Financial Reports & Analysis — Full Ledger
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/reports-ledger.png" alt="Reports Ledger" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/reports-ledger.png" alt="Reports Ledger" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Reports — Total Expenses (EGP 5,320), Total Collected (EGP 10,967.13), Cash Balance (EGP 5,647.13), Total Unpaid (EGP 1,275), Full Ledger tab with running balance.
 
@@ -277,7 +277,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 
 ### 4.10 Financial Reports & Analysis — Monthly View
 
-<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/reports-monthly.png" alt="Reports Monthly" style="display:block; max-width:34%; max-height:240px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
+<div class="screenshot-block" style="page-break-inside: avoid; break-inside: avoid-page; text-align: center; margin: 10px 0 14px;"><img src="./assets/reports-monthly.png" alt="Reports Monthly" style="display:block; max-width:60%; max-height:400px; width:auto; height:auto; margin:0 auto; object-fit:contain; page-break-inside:avoid; break-inside:avoid-page;" /></div>
 
 **Screenshot:** Reports — Monthly tab showing 2026-07: Expenses EGP 5,320, Collected EGP 10,967.13, Net EGP 5,647.13.
 
@@ -348,7 +348,7 @@ Each section below shows a screenshot, describes the functionality, and maps it 
 | 31 | Multi-currency support | MEA regional operations | Medium |
 | 32 | Hierarchical entity tree (Region → BU) | Organizational planning structure | High |
 | 33 | Driver-based cost allocation | Advanced allocation rules | High |
-| 34 | Budget version control & revision history | Planning cycle management | High |
+| 50 | Budget version control & revision history | Planning cycle management | High |
 | 35 | Power Apps offline expense capture | Field mobile workflows | Low |
 | 36 | DevExtreme PivotGrid for ad-hoc analysis | Self-service business analysis | Medium |
 | 37 | Audit trail on all financial changes | Compliance & traceability | Medium |
