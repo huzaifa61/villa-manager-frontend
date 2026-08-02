@@ -13,7 +13,7 @@ import {
   type TableExportPayload,
 } from '../../utils/exportActions';
 import ExportButtons from '../../components/ExportButtons';
-import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, balanceFromPaymentExpense, parseApiCurrentBalance } from '../../utils/money';
 import { formatT, translateEnum, translateExpenseCategory } from '../../i18n/helpers';
 
 type Tab = 'balance' | 'ledger' | 'monthly' | 'category';
@@ -47,19 +47,6 @@ export default function ReportsScreen() {
 
   useEffect(() => { fetchData(); }, [villaId]);
 
-  const totals = useMemo(() => {
-    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    const totalCollected = payments
-      .filter((p) => p.status === 'COMPLETED' || p.status === 'PAID')
-      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    return {
-      totalExpenses,
-      totalCollected,
-      cashBalance: totalCollected - totalExpenses,
-      totalUnpaid: apartments.reduce((sum, a) => sum + apartmentBalanceDue(a.currentBalance), 0),
-    };
-  }, [apartments, expenses, payments]);
-
   const balanceRows = useMemo(() => apartments.map((apartment) => {
     const globalShare = apartments.length ? expenses
       .filter((e) => !e.apartmentId)
@@ -70,17 +57,31 @@ export default function ReportsScreen() {
     const paid = payments
       .filter((p) => p.apartmentId === apartment.id && (p.status === 'COMPLETED' || p.status === 'PAID'))
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
-    const allocated = globalShare + directExpenses;
+    const expense = globalShare + directExpenses;
+    const balance = balanceFromPaymentExpense(apartment.openingBalance, paid, expense);
     return {
       id: apartment.id,
       apartment: apartment.apartmentNumber,
       owner: apartment.ownerName || '-',
       opening: Number(apartment.openingBalance || 0),
-      allocated,
+      expense,
       paid,
-      balance: Number(apartment.openingBalance || 0) + allocated - paid,
+      balance,
     };
   }), [apartments, expenses, payments]);
+
+  const totals = useMemo(() => {
+    const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    const totalCollected = payments
+      .filter((p) => p.status === 'COMPLETED' || p.status === 'PAID')
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    return {
+      totalExpenses,
+      totalCollected,
+      cashBalance: totalCollected - totalExpenses,
+      totalUnpaid: balanceRows.reduce((sum, row) => sum + apartmentBalanceDue(row.balance), 0),
+    };
+  }, [balanceRows, expenses, payments]);
 
   const ledgerRows = useMemo(() => {
     const rows = [
@@ -149,8 +150,8 @@ export default function ReportsScreen() {
     }
     return {
       filename: 'balance-report.csv',
-      headers: [t('apartment'), t('owner'), t('opening'), t('allocated'), t('paid'), t('balance')],
-      rows: balanceRows.map((row) => [row.apartment, row.owner, row.opening, row.allocated, row.paid, row.balance]),
+      headers: [t('apartment'), t('owner'), t('opening'), t('typeExpense'), t('paid'), t('balance')],
+      rows: balanceRows.map((row) => [row.apartment, row.owner, row.opening, row.expense, row.paid, row.balance]),
     };
   };
 
@@ -232,16 +233,24 @@ export default function ReportsScreen() {
 
           {activeTab === 'balance' ? (
             <View style={styles.table}>
-              {balanceRows.map((row) => (
+              {balanceRows.map((row) => {
+                const balanceView = parseApiCurrentBalance(row.balance);
+                return (
                 <View key={row.id} style={styles.row}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.primary}>{t('apartment')} {row.apartment}</Text>
                     <Text style={styles.muted}>{row.owner}</Text>
-                    <Text style={styles.muted}>{t('opening')} {money(row.opening)} • {t('allocated')} {money(row.allocated)} • {t('paid')} <Text style={{ color: PAID_COLOR }}>{money(row.paid)}</Text></Text>
+                    <Text style={styles.muted}>
+                      {t('opening')} {money(row.opening)} • {t('typeExpense')} {money(row.expense)} • {t('paid')}{' '}
+                      <Text style={{ color: PAID_COLOR }}>{money(row.paid)}</Text>
+                    </Text>
                   </View>
-                  <Text style={[styles.amount, { color: Math.max(row.balance, 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(row.balance, 0))}</Text>
+                  <Text style={[styles.amount, { color: balanceView.isOwed ? UNPAID_COLOR : PAID_COLOR }]}>
+                    {balanceView.isCredit && row.balance > 0 ? '+' : ''}{money(balanceView.amount)}
+                  </Text>
                 </View>
-              ))}
+                );
+              })}
             </View>
           ) : null}
 
