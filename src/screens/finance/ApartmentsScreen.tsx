@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { apiService } from '../../services/api';
 import { exportCsv, exportCsvContent } from '../../utils/csv';
+import { saveExportFromResponse } from '../../utils/exportFile';
 import { getActiveVillaName } from '../../utils/villa';
 import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
@@ -286,6 +287,29 @@ const ApartmentsScreen = () => {
     }
   };
 
+  const exportApartmentsExcel = async () => {
+    try {
+      const { data, headers } = await apiService.exportApartmentsExcel(villaId);
+      await saveExportFromResponse(
+        data,
+        headers,
+        'apartments.xlsx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('exportFailed'));
+    }
+  };
+
+  const exportApartmentsPdf = async () => {
+    try {
+      const { data, headers } = await apiService.exportApartmentsPdf(villaId);
+      await saveExportFromResponse(data, headers, 'apartments.pdf', 'application/pdf');
+    } catch (e: any) {
+      Alert.alert(t('error'), e?.response?.data?.message || e?.message || t('exportFailed'));
+    }
+  };
+
   const renderItem = ({ item }: { item: Apartment }) => {
     const balanceView = parseApiCurrentBalance(item.currentBalance);
     return (
@@ -320,6 +344,14 @@ const ApartmentsScreen = () => {
       <View style={styles.header}>
         <Text style={styles.title}>{t('apartmentsTitle')} ({filteredApartments.length})</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportApartmentsExcel}>
+            <Ionicons name="grid-outline" size={18} color={theme.text} />
+            <Text style={styles.exportText}>{t('excel')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.exportBtn} onPress={exportApartmentsPdf}>
+            <Ionicons name="document-outline" size={18} color={theme.text} />
+            <Text style={styles.exportText}>{t('pdf')}</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.exportBtn} onPress={exportApartments}>
             <Ionicons name="download-outline" size={18} color={theme.text} />
             <Text style={styles.exportText}>{t('csv')}</Text>

@@ -57,6 +57,15 @@ const getCsv = async (url: string) => {
   return data;
 };
 
+const downloadBinary = async (url: string) => {
+  const response = await api.get(url, { responseType: 'arraybuffer' });
+  const headers: Record<string, string> = {};
+  Object.entries(response.headers || {}).forEach(([key, value]) => {
+    if (typeof value === 'string') headers[key.toLowerCase()] = value;
+  });
+  return { data: response.data as ArrayBuffer, headers };
+};
+
 export const apiService = {
   login: async (email: string, password: string) => {
     const { data } = await api.post('/v1/auth/login', { email, password });
@@ -115,6 +124,10 @@ export const apiService = {
     return unwrap(data);
   },
   exportApartmentsCsv: async (villaId: number) => getCsv('/v1/villas/' + villaId + '/apartments/export'),
+  exportApartmentsExcel: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/apartments/export-excel'),
+  exportApartmentsPdf: async (villaId: number) =>
+    downloadBinary('/v1/villas/' + villaId + '/apartments/export-pdf'),
   getPayments: async (villaId: number) => {
     const { data } = await api.get('/v1/villas/' + villaId + '/payments');
     return unwrap(data);
