@@ -13,7 +13,7 @@ import { useAppPreferences } from '../../context/AppPreferences';
 import { RootState } from '../../store';
 import { permissionsFor } from '../../utils/permissions';
 import { confirmAction } from '../../utils/confirm';
-import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, isApartmentPaidUp } from '../../utils/money';
+import { money, PAID_COLOR, UNPAID_COLOR, apartmentBalanceDue, apartmentCreditBalance, isApartmentPaidUp, isPaymentPaid, balanceFromPaymentExpense } from '../../utils/money';
 import { formatT, translateEnum } from '../../i18n/helpers';
 
 interface Apartment {
@@ -209,9 +209,10 @@ const ApartmentsScreen = () => {
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const paid = payments
       .filter((p) => p.apartmentId === statementApartment.id)
+      .filter((p) => isPaymentPaid(p.status))
       .reduce((sum, p) => sum + Number(p.amount || 0), 0);
     const allocated = globalShare + directExpenses;
-    const balance = Number(statementApartment.openingBalance || 0) + allocated - paid;
+    const balance = balanceFromPaymentExpense(statementApartment.openingBalance, paid, allocated);
     const rows = [
       { date: t('opening'), detail: t('openingBalanceDetail'), debit: Number(statementApartment.openingBalance || 0), credit: 0 },
       ...expenses.filter((e) => !e.apartmentId || e.apartmentId === statementApartment.id).map((e) => ({
@@ -400,7 +401,21 @@ const ApartmentsScreen = () => {
               <View style={styles.summaryGrid}>
                 <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('allocatedLabel')}</Text><Text style={styles.summaryValue}>{money(statement?.allocated)}</Text></View>
                 <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('paid')}</Text><Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{money(statement?.paid)}</Text></View>
-                <View style={styles.summaryBox}><Text style={styles.summaryLabel}>{t('balance')}</Text><Text style={[styles.summaryValue, { color: Math.max(Number(statement?.balance || 0), 0) > 0 ? UNPAID_COLOR : PAID_COLOR }]}>{money(Math.max(Number(statement?.balance || 0), 0))}</Text></View>
+                <View style={styles.summaryBox}>
+                  <Text style={styles.summaryLabel}>{t('balance')}</Text>
+                  {(() => {
+                    const balance = Number(statement?.balance || 0);
+                    const due = apartmentBalanceDue(balance);
+                    const credit = apartmentCreditBalance(balance);
+                    if (due > 0) {
+                      return <Text style={[styles.summaryValue, { color: UNPAID_COLOR }]}>{money(due)}</Text>;
+                    }
+                    if (credit > 0) {
+                      return <Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{formatT(t('creditBalance'), { amount: money(credit) })}</Text>;
+                    }
+                    return <Text style={[styles.summaryValue, { color: PAID_COLOR }]}>{money(0)}</Text>;
+                  })()}
+                </View>
               </View>
               {statement?.rows.map((row, index) => (
                 <View key={index} style={styles.statementRow}>
