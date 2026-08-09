@@ -6,7 +6,7 @@ cmds = ["npm install --legacy-peer-deps"]
 
 [phases.build]
 cmds = [
-  "echo 'EXPO_PUBLIC_API_URL=https://villa-manager-backend-production.up.railway.app/api' > .env",
+  "echo 'EXPO_PUBLIC_API_URL=https://villa-manager-backend-production-478d.up.railway.app/api' > .env",
   "npm run build:web"
 ]
 

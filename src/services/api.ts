@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // ─── API Configuration ───────────────────────────────────────────────────────
-const RAILWAY_API_URL = 'https://villa-manager-backend-production.up.railway.app/api';
+const RAILWAY_API_URL = 'https://villa-manager-backend-production-478d.up.railway.app/api';
 
 const getBaseUrl = (): string => {
   // EAS APK build: reads from app.config.js extra (baked at build time)

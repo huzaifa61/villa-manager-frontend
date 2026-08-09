@@ -18,8 +18,6 @@ const categories = ['Electrician', 'Plumber', 'Carpenter', 'Painter', 'Pest Cont
 const urgencies = ['Low', 'Medium', 'High', 'Urgent'];
 const statuses = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'];
 
-type IconName = React.ComponentProps<typeof Ionicons>['name'];
-
 const initialForm = {
   category: 'Electrician',
   urgency: 'Medium',
@@ -148,17 +146,10 @@ export default function ServiceRequestsScreen() {
   const exportRequestsPdf = () =>
     runBinaryExport(t, () => apiService.exportServiceRequestsPdf(villaId), 'service-requests.pdf', PDF_MIME);
 
-  const actionButton = (label: string, icon: IconName, onPress: () => void, primary = false) => (
-    <TouchableOpacity style={[styles.button, primary && styles.primaryButton]} onPress={onPress}>
-      <Ionicons name={icon} size={17} color={primary ? theme.onPrimary : theme.text} />
-      <Text style={[styles.buttonText, primary && styles.primaryButtonText]}>{label}</Text>
-    </TouchableOpacity>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.title}>{t('serviceRequests')}</Text>
           <Text style={styles.subtitle}>{t('serviceSubtitle')}</Text>
         </View>
@@ -167,7 +158,11 @@ export default function ServiceRequestsScreen() {
             onCsv={exportRequests}
             onPdf={exportRequestsPdf}
           />
-          {permissions.canCreateServiceRequests ? actionButton(showForm ? t('close') : t('newRequest'), showForm ? 'close-outline' : 'add-outline', () => setShowForm(!showForm), true) : null}
+          {permissions.canCreateServiceRequests ? (
+            <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
+              <Ionicons name={showForm ? 'close' : 'add'} size={24} color={theme.onPrimary} />
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
 
@@ -269,14 +264,12 @@ export default function ServiceRequestsScreen() {
 
 const makeStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: 16, backgroundColor: theme.card },
+  header: { padding: 16, backgroundColor: theme.card, gap: 12 },
+  headerText: { flex: 1 },
   title: { color: theme.text, fontSize: 22, fontWeight: 'bold' },
   subtitle: { color: theme.muted, marginTop: 3, fontSize: 12 },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  button: { backgroundColor: theme.chip, borderRadius: 8, minHeight: 40, paddingHorizontal: 10, paddingVertical: 8, flexDirection: 'row', gap: 5, alignItems: 'center' },
-  primaryButton: { backgroundColor: theme.primary },
-  buttonText: { color: theme.text, fontWeight: '800', fontSize: 12 },
-  primaryButtonText: { color: theme.onPrimary },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', alignSelf: 'stretch' },
+  addBtn: { backgroundColor: theme.primary, borderRadius: 20, width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   content: { padding: 16, paddingBottom: 28 },
   notice: { backgroundColor: '#0F2230', borderColor: '#1F3A4D', borderWidth: 1, padding: 12, borderRadius: 10, flexDirection: 'row', gap: 8, marginBottom: 14 },
   noticeText: { color: '#93C5FD', flex: 1, lineHeight: 18 },
