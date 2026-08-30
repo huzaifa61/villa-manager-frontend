@@ -48,6 +48,9 @@ export const loginUser = createAsyncThunk('auth/login', async (
     if (activeVillaId) await AsyncStorage.setItem('activeVillaId', String(activeVillaId));
     return { ...res, activeVillaId };
   } catch (e: any) {
+    if (e?.code === 'ECONNABORTED') {
+      return rejectWithValue('The server is taking longer than one minute to wake up. Please try again.');
+    }
     return rejectWithValue(e?.response?.data?.error || e?.message || 'Login failed');
   }
 });
