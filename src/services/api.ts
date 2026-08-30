@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 // ─── API Configuration ───────────────────────────────────────────────────────
-const RAILWAY_API_URL = 'https://villa-manager-backend-production-478d.up.railway.app/api';
+const RENDER_API_URL = 'https://villa-manager-backend-gonc.onrender.com/api';
 
 const getBaseUrl = (): string => {
   // EAS APK build: reads from app.config.js extra (baked at build time)
@@ -15,8 +15,8 @@ const getBaseUrl = (): string => {
   const envUrl = (process.env as any).EXPO_PUBLIC_API_URL;
   if (envUrl) return envUrl;
 
-  // Final fallback — always Railway
-  return RAILWAY_API_URL;
+  // Primary fallback — Render Backend
+  return RENDER_API_URL;
 };
 
 const api = axios.create({
@@ -34,8 +34,11 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
-    // Only logout on 401 (token expired/invalid) — NOT on 403 (permission denied)
-    if (error?.response?.status === 401) {
+    const requestUrl = error?.config?.url || '';
+    const isLoginRequest = requestUrl.includes('/v1/auth/login');
+
+    // A login 401 is a form error, not an expired authenticated session.
+    if (error?.response?.status === 401 && !isLoginRequest) {
       await AsyncStorage.multiRemove(['accessToken', 'user', 'activeVillaId']);
       // Only reload on web — not on mobile (window doesn't exist)
       if (typeof window !== 'undefined' && window?.location?.reload) {

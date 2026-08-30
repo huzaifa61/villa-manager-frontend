@@ -28,7 +28,7 @@ export default {
     plugins: ["expo-notifications", "@react-native-community/datetimepicker"],
     extra: {
       // Bake API URL into the bundle at build time
-      apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://villa-manager-backend-production-478d.up.railway.app/api",
+      apiUrl: process.env.EXPO_PUBLIC_API_URL || "https://villa-manager-backend-gonc.onrender.com/api",
       eas: {
         projectId: "82bed8c8-5a27-4dbd-89bf-40eff8456936",
       },
