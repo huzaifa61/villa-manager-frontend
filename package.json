@@ -6,11 +6,11 @@
     "node": ">=20.19.4"
   },
   "scripts": {
-    "start": "expo start",
+    "start": "node init && expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "build:web": "npx expo export --platform web",
+    "build:web": "node init && npx expo export --platform web",
     "serve": "npx serve dist"
   },
   "dependencies": {

@@ -5,6 +5,7 @@ import Constants from 'expo-constants';
 
 // ─── API Configuration ───────────────────────────────────────────────────────
 const RENDER_API_URL = 'https://villa-manager-backend-gonc.onrender.com/api';
+const LOGIN_TIMEOUT_MS = 60_000;
 
 const getBaseUrl = (): string => {
   // EAS APK build: reads from app.config.js extra (baked at build time)
@@ -85,7 +86,9 @@ const vendorExportUrl = (path: string, villaId?: number | null) => {
 
 export const apiService = {
   login: async (email: string, password: string) => {
-    const { data } = await api.post('/v1/auth/login', { email, password });
+    const { data } = await api.post('/v1/auth/login', { email, password }, {
+      timeout: LOGIN_TIMEOUT_MS,
+    });
     return unwrap(data);
   },
   register: async (body: { fullName: string; email: string; password: string; phoneNumber?: string }) => {

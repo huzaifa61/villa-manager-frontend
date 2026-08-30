@@ -11,17 +11,16 @@ yarn-error.log
 *.bundle
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
 *~
 
 # Environment
-.env.local
 .env.*.local
 
 # Build
 dist/
 build/
 .vercel
+config.bat
